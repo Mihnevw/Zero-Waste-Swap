@@ -16,7 +16,7 @@ import {
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import { useAnalytics } from '../components/AnalyticsProvider';
-import { heroImage, vegetablesImage, shoppingBagsImage, bambooImage, shoesImage, coffeeMakerImage, jacketImage, boardGamesImage, yogaMatImage, blenderImage, childrenBooksImage, gardenToolsImage, laptopStandImage, bicycleImage, artSuppliesImage, deskLampImage } from '../assets/placeholders';
+import { heroImage, vegetablesImage, shoppingBagsImage, bambooImage, shoesImage, coffeeMakerImage, jacketImage, boardGamesImage, yogaMatImage, blenderImage, childrenBooksImage, gardenToolsImage, laptopStandImage, bicycleImage, artSuppliesImage, deskLampImage, laptopImage  } from '../assets/placeholders';
 import SearchBar from '../components/SearchBar';
 import Footer from '../components/Footer';
 
@@ -181,124 +181,134 @@ const Home: React.FC = () => {
       image: deskLampImage,
       location: 'Varna, Bulgaria',
       category: 'Electronics',
+    },
+    {
+      id: 16,
+      title: 'Laptop',
+      description: 'Apple MacBook Pro 16" M3 Pro 512GB Space Black',
+      image: laptopImage,
+      location: 'Sliven, Bulgaria',
+      category: 'Electronics',
     }
   ];
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column',
-      minHeight: '100vh' 
-    }}>
-      <Box sx={{ flex: 1 }}>
-        {/* Hero Section */}
+    <Box sx={{ width: '100%' }}>
+      {/* Hero Section */}
+      <Box
+        sx={{
+          width: '100%',
+          minHeight: { xs: '50vh', sm: '60vh', md: '70vh' },
+          background: 'linear-gradient(45deg, #2E7D32 30%, #4CAF50 90%)',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Background Image */}
         <Box
           sx={{
-            width: '100%',
-            minHeight: { xs: '50vh', sm: '60vh', md: '70vh' },
-            background: 'linear-gradient(45deg, #2E7D32 30%, #4CAF50 90%)',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `url(${heroImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.2,
+          }}
+        />
+        
+        {/* Hero Content */}
+        <Container 
+          maxWidth={false}
+          sx={{ 
             position: 'relative',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            mb: { xs: 4, sm: 6, md: 8 },
+            zIndex: 1,
+            width: '100%',
+            maxWidth: '1200px',
+            mx: 'auto',
+            px: { xs: 2, sm: 3 },
           }}
         >
-          <Box
+          <Typography
+            variant="h2"
+            component="h1"
             sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundImage: `url(${heroImage})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              opacity: 0.2,
+              color: 'white',
+              textAlign: 'center',
+              mb: 3,
+              fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
+              fontWeight: 700,
+              textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
             }}
-          />
-          <Container maxWidth={false} sx={{ position: 'relative', zIndex: 1 }}>
-            <Box
-              sx={{
-                maxWidth: '800px',
-                mx: 'auto',
-                textAlign: 'center',
-                color: 'white',
-                px: { xs: 2, sm: 3, md: 4 },
-              }}
-            >
-              <Typography
-                variant={isMobile ? 'h3' : 'h2'}
-                component="h1"
-                gutterBottom
-                sx={{
-                  fontWeight: 700,
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-                  mb: { xs: 2, sm: 3 },
-                }}
-              >
-                Welcome to Zero-Waste Swap
-              </Typography>
-              <Typography
-                variant={isMobile ? 'h6' : 'h5'}
-                sx={{ 
-                  mb: { xs: 3, sm: 4 },
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
-                  px: { xs: 2, sm: 0 },
-                }}
-              >
-                Join our community of eco-conscious individuals
-              </Typography>
-              <Box
-                sx={{
-                  maxWidth: '600px',
-                  mx: 'auto',
-                  '& .MuiTextField-root': {
-                    backgroundColor: 'rgba(255,255,255,0.9)',
-                    borderRadius: 1,
-                  },
-                }}
-              >
-                <SearchBar
-                  value={searchQuery}
-                  onChange={(value) => {
-                    setSearchQuery(value);
-                    handleSearch(value);
-                  }}
-                  placeholder="Search for items to swap..."
-                />
-              </Box>
-            </Box>
-          </Container>
-        </Box>
+          >
+            Swap, Share, Sustain
+          </Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              color: 'white',
+              textAlign: 'center',
+              mb: 4,
+              fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+              textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
+            }}
+          >
+            Join our community of eco-conscious individuals sharing and swapping items
+          </Typography>
+          <Box sx={{ maxWidth: '600px', mx: 'auto' }}>
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onSearch={handleSearch}
+              placeholder="Search for items to swap..."
+              fullWidth
+            />
+          </Box>
+        </Container>
+      </Box>
 
-        {/* Featured Listings Section */}
-        <Container maxWidth={false} sx={{ py: { xs: 4, sm: 6, md: 8 } }}>
+      {/* Featured Listings */}
+      <Box sx={{ width: '100%', bgcolor: 'background.default' }}>
+        <Container 
+          maxWidth={false}
+          sx={{ 
+            py: { xs: 4, sm: 6 },
+            width: '100%',
+            maxWidth: '1200px',
+            mx: 'auto',
+            px: { xs: 2, sm: 3 },
+          }}
+        >
           <Typography
             variant="h4"
             component="h2"
-            gutterBottom
-            sx={{ 
-              textAlign: 'center', 
-              mb: { xs: 4, sm: 6 },
-              px: { xs: 2, sm: 0 },
+            sx={{
+              mb: 4,
+              textAlign: 'center',
+              fontWeight: 600,
             }}
           >
-            Featured Listings
+            Featured Items
           </Typography>
-          <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+          <Grid container spacing={3}>
             {featuredListings.map((listing) => (
-              <Grid item xs={12} sm={6} md={4} key={listing.id}>
+              <Grid item key={listing.id} xs={12} sm={6} md={4} lg={3}>
                 <Card
                   sx={{
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
                     cursor: 'pointer',
                     '&:hover': {
                       transform: 'translateY(-4px)',
-                      boxShadow: 6,
+                      boxShadow: 4,
+                      transition: 'all 0.2s ease-in-out',
                     },
                   }}
                   onClick={() => handleListingClick(listing)}
@@ -314,32 +324,32 @@ const Home: React.FC = () => {
                     <Typography gutterBottom variant="h6" component="h3">
                       {listing.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                    >
                       {listing.description}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  </CardContent>
+                  <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
                       {listing.location}
                     </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <IconButton 
-                      aria-label="add to favorites"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Handle favorite action
-                      }}
-                    >
-                      <FavoriteIcon />
-                    </IconButton>
-                    <IconButton 
-                      aria-label="share"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Handle share action
-                      }}
-                    >
-                      <ShareIcon />
-                    </IconButton>
+                    <Box>
+                      <IconButton size="small">
+                        <FavoriteIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small">
+                        <ShareIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </CardActions>
                 </Card>
               </Grid>
@@ -347,7 +357,6 @@ const Home: React.FC = () => {
           </Grid>
         </Container>
       </Box>
-
       <Footer />
     </Box>
   );

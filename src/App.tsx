@@ -1,100 +1,66 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Box, Container } from '@mui/material';
-import { theme } from './theme';
-import Navbar from './components/Navbar';
-import { AuthProvider } from './contexts/AuthContext';
+import React from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { Box, GlobalStyles } from '@mui/material';
 import { AnalyticsProvider } from './components/AnalyticsProvider';
-import { useTheme } from '@mui/material';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Profile from './pages/Profile';
-import CreateListing from './pages/CreateListing';
-import ListingDetails from './pages/ListingDetails';
-import EditListing from './pages/EditListing';
-import Search from './pages/Search';
+import { AuthProvider } from './contexts/AuthContext';
+import { theme } from './theme';
+import AppRoutes from './routes';
+import Navbar from './components/Navbar';
 
-const AppContent = () => {
-  const theme = useTheme();
-
-  return (
-    <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      width: '100vw',
-      maxWidth: '100%',
-      position: 'relative',
-      boxSizing: 'border-box',
-      margin: 0,
-      padding: 0,
-      bgcolor: theme.palette.background.default
-    }}>
-      <Navbar />
-      <Box
-        component="main"
-        sx={{
-          flex: 1,
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          overflow: 'auto',
-          py: { xs: 2, sm: 3, md: 4 }
-        }}
-      >
-        <Container 
-          maxWidth="xl" 
-          sx={{ 
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            px: { xs: 2, sm: 3, md: 4 },
-            '& > *': {
-              width: '100%',
-              maxWidth: '100%'
-            }
-          }}
-        >
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/create-listing" element={<CreateListing />} />
-            <Route path="/listing/:id" element={<ListingDetails />} />
-            <Route path="/edit-listing/:id" element={<EditListing />} />
-            <Route path="/search" element={<Search />} />
-          </Routes>
-        </Container>
-      </Box>
-    </Box>
-  );
+const globalStyles = {
+  '*': {
+    margin: 0,
+    padding: 0,
+    boxSizing: 'border-box',
+  },
+  'html, body, #root': {
+    width: '100%',
+    minHeight: '100vh',
+    margin: 0,
+    padding: 0,
+  },
+  body: {
+    overflowY: 'auto',
+    overflowX: 'hidden',
+  },
 };
 
-const App = () => {
+const App: React.FC = () => {
   return (
     <Router>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ 
-          height: '100vh',
-          width: '100vw',
-          maxWidth: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          overflow: 'hidden',
-          margin: 0,
-          padding: 0,
-          bgcolor: theme.palette.background.default
-        }}>
-          <AuthProvider>
-            <AnalyticsProvider>
-              <AppContent />
-            </AnalyticsProvider>
-          </AuthProvider>
-        </Box>
+        <GlobalStyles styles={globalStyles} />
+        <AuthProvider>
+          <AnalyticsProvider>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: '100vh',
+                width: '100%',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <Navbar />
+              <Box 
+                component="main" 
+                sx={{ 
+                  flex: 1, 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                <AppRoutes />
+              </Box>
+            </Box>
+          </AnalyticsProvider>
+        </AuthProvider>
       </ThemeProvider>
     </Router>
   );
