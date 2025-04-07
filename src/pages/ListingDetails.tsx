@@ -1,205 +1,287 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
   Typography,
   Grid,
-  Card,
-  CardContent,
-  CardMedia,
+  Paper,
   Button,
-  CircularProgress,
   Chip,
+  IconButton,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogActions,
+  useTheme,
+  useMediaQuery,
+  Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { useAuth } from '../hooks/useAuth';
-import { Listing } from '../types/listing';
+import {
+  LocationOn as LocationIcon,
+  Category as CategoryIcon,
+  Share as ShareIcon,
+  Favorite as FavoriteIcon,
+  ArrowBack as ArrowBackIcon,
+  ZoomIn as ZoomInIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  Person as PersonIcon,
+} from '@mui/icons-material';
+import Footer from '../components/Footer';
 
-// Move defaultLocation to the top level, outside of the component
-const DEFAULT_LOCATION = { latitude: 42.7339, longitude: 25.4855 };
-
-const ListingDetails = () => {
-  const { id } = useParams<{ id: string }>();
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const { user } = useAuth();
+const ListingDetails: React.FC = () => {
+  const location = useLocation();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [imageDialogOpen, setImageDialogOpen] = React.useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = React.useState(false);
 
-  // Function to extract username from email
-  const getUsernameFromEmail = (email: string | undefined | null) => {
-    if (!email) return 'Unknown User';
-    return email.split('@')[0];
-  };
+  const listing = location.state?.listing;
 
-  useEffect(() => {
-    const fetchListing = async () => {
-      try {
-        if (!id) return;
-        const docRef = doc(db, 'listings', id);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          // Create a properly typed listing object
-          const listingData: Listing = {
-            id: docSnap.id,
-            title: data.title,
-            description: data.description,
-            category: data.category,
-            condition: data.condition,
-            images: data.images || [],
-            userId: data.userId,
-            userName: getUsernameFromEmail(data.userEmail), // Extract username from email
-            createdAt: data.createdAt?.toDate(),
-            updatedAt: data.updatedAt?.toDate(),
-            location: data.location || DEFAULT_LOCATION,
-            status: data.status || 'available'
-          };
-          
-          console.log('Fetched listing data:', listingData);
-          setListing(listingData);
-        } else {
-          setError('Listing not found');
-        }
-      } catch (err) {
-        console.error('Error fetching listing:', err);
-        setError('Error fetching listing details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchListing();
-  }, [id]);
-
-  // Function to handle missing images
-  const getImageUrl = () => {
-    if (listing?.images && listing.images.length > 0) {
-      console.log('Using image URL:', listing.images[0]);
-      return listing.images[0];
-    }
-    console.log('No image available, using default');
-    return '/book.webp';
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error || !listing) {
+  if (!listing) {
     return (
       <Container>
-        <Typography color="error" sx={{ mt: 4 }}>
-          {error || 'Listing not found'}
+        <Typography variant="h5" sx={{ mt: 4 }}>
+          Listing not found
         </Typography>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/')}
+          sx={{ mt: 2 }}
+        >
+          Back to Home
+        </Button>
       </Container>
     );
   }
 
+  const handleContactClick = () => {
+    setContactDialogOpen(true);
+  };
+
+  const handleCloseContactDialog = () => {
+    setContactDialogOpen(false);
+  };
+
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <Card>
-              <CardMedia
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      minHeight: '100vh'
+    }}>
+      <Container maxWidth="lg" sx={{ flex: 1, py: 4 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/')}
+          sx={{ mb: 3 }}
+        >
+          Back to Home
+        </Button>
+
+        <Grid container spacing={4}>
+          {/* Left Column - Image */}
+          <Grid item xs={12} md={6}>
+            <Paper
+              sx={{
+                position: 'relative',
+                cursor: 'zoom-in',
+                '&:hover .zoom-icon': {
+                  opacity: 1,
+                },
+              }}
+              onClick={() => setImageDialogOpen(true)}
+            >
+              <Box
                 component="img"
-                height="240"
-                image={getImageUrl()}
+                src={listing.image}
                 alt={listing.title}
                 sx={{
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: '500px',
                   objectFit: 'contain',
                   bgcolor: 'background.paper',
                 }}
-                onError={(e) => {
-                  console.error('Error loading image:', e);
-                  e.currentTarget.src = '/book.webp';
-                }}
               />
-              <CardContent>
-                <Typography variant="h4" gutterBottom>
+              <Box
+                className="zoom-icon"
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  opacity: 0,
+                  transition: 'opacity 0.2s',
+                  bgcolor: 'rgba(0, 0, 0, 0.5)',
+                  borderRadius: '50%',
+                  p: 1,
+                }}
+              >
+                <ZoomInIcon sx={{ color: 'white', fontSize: 40 }} />
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Right Column - Details */}
+          <Grid item xs={12} md={6}>
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Typography variant="h4" component="h1" gutterBottom>
                   {listing.title}
                 </Typography>
-                <Box sx={{ mb: 2 }}>
-                  <Chip label={listing.category} sx={{ mr: 1 }} />
-                  <Chip label={listing.condition} />
+                <Box>
+                  <IconButton>
+                    <FavoriteIcon />
+                  </IconButton>
+                  <IconButton>
+                    <ShareIcon />
+                  </IconButton>
                 </Box>
-                <Typography variant="body1" paragraph>
-                  {listing.description}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                  Posted by {listing.userName}
-                  {listing.createdAt && (
-                    <span> on {listing.createdAt.toLocaleDateString('en-GB')}</span>
-                  )}
-                </Typography>
-              </CardContent>
-            </Card>
+              </Box>
 
-            <Card sx={{ height: 400, mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Location
-                </Typography>
-                <MapContainer
-                  center={[listing.location?.latitude || DEFAULT_LOCATION.latitude, listing.location?.longitude || DEFAULT_LOCATION.longitude]}
-                  zoom={6}
-                  style={{ height: '100%', width: '100%' }}
+              <Box sx={{ mb: 3 }}>
+                <Chip
+                  icon={<CategoryIcon />}
+                  label={listing.category}
+                  sx={{ mr: 1 }}
+                />
+                <Chip
+                  icon={<LocationIcon />}
+                  label={listing.location}
+                />
+              </Box>
+
+              <Typography variant="h6" color="primary" gutterBottom>
+                Description
+              </Typography>
+              <Typography variant="body1" paragraph>
+                {listing.description}
+              </Typography>
+
+              <Divider sx={{ my: 3 }} />
+
+              <Box sx={{ mb: 3 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  onClick={handleContactClick}
                 >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  />
-                  <Marker position={[listing.location?.latitude || DEFAULT_LOCATION.latitude, listing.location?.longitude || DEFAULT_LOCATION.longitude]}>
-                    <Popup>{listing.title}</Popup>
-                  </Marker>
-                </MapContainer>
-              </CardContent>
-            </Card>
-          </Grid>
+                  Contact Seller
+                </Button>
+              </Box>
 
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                {user && user.uid === listing.userId ? (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={() => navigate(`/edit-listing/${listing.id}`)}
-                  >
-                    Edit Listing
-                  </Button>
-                ) : (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={() => {
-                      if (!user) {
-                        console.error('No authenticated user');
-                        return;
-                      }
-                      console.log('Contact owner');
-                    }}
-                  >
-                    Contact Owner
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+              <Box sx={{ mt: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Listed in {listing.category}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Location: {listing.location}
+                </Typography>
+              </Box>
+            </Box>
           </Grid>
         </Grid>
-      </Box>
-    </Container>
+
+        {/* Image Dialog for fullscreen view */}
+        <Dialog
+          open={imageDialogOpen}
+          onClose={() => setImageDialogOpen(false)}
+          maxWidth="xl"
+          fullScreen={isMobile}
+        >
+          <DialogContent sx={{ p: 0 }}>
+            <Box
+              component="img"
+              src={listing.image}
+              alt={listing.title}
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                bgcolor: 'background.paper',
+              }}
+              onClick={() => setImageDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Contact Seller Dialog */}
+        <Dialog
+          open={contactDialogOpen}
+          onClose={handleCloseContactDialog}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Contact Seller</DialogTitle>
+          <DialogContent>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <PersonIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Seller Name" 
+                  secondary={listing.sellerName || "Anonymous User"} 
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <EmailIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Email" 
+                  secondary={listing.sellerEmail || "Not provided"} 
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <PhoneIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Phone" 
+                  secondary={listing.sellerPhone || "Not provided"} 
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <LocationIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Location" 
+                  secondary={listing.location} 
+                />
+              </ListItem>
+            </List>
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Please be respectful when contacting the seller. All communications should be related to the item listed.
+              </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseContactDialog}>Close</Button>
+            {listing.sellerEmail && (
+              <Button 
+                variant="contained" 
+                color="primary"
+                onClick={() => window.location.href = `mailto:${listing.sellerEmail}`}
+              >
+                Send Email
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
+      </Container>
+
+      <Footer />
+    </Box>
   );
 };
 

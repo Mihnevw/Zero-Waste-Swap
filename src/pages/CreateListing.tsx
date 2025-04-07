@@ -39,7 +39,7 @@ const CreateListing = () => {
     title: '',
     description: '',
     category: '',
-    condition: 'good' as typeof conditions[number],
+    condition: '',
     images: [] as File[],
     location: {
       latitude: 51.505,

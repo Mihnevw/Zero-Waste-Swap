@@ -6,6 +6,7 @@ import Profile from './pages/Profile';
 import CreateListing from './pages/CreateListing';
 import ListingDetails from './pages/ListingDetails';
 import EditListing from './pages/EditListing';
+import Search from './pages/Search';
 
 const AppRoutes = () => {
   return (
@@ -17,6 +18,7 @@ const AppRoutes = () => {
       <Route path="/create-listing" element={<CreateListing />} />
       <Route path="/listing/:id" element={<ListingDetails />} />
       <Route path="/edit-listing/:id" element={<EditListing />} />
+      <Route path="/search" element={<Search />} />
     </Routes>
   );
 };

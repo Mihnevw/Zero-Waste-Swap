@@ -4,23 +4,21 @@ import {
   Box,
   Container,
   Typography,
-  TextField,
-  Button,
   Grid,
   Card,
   CardContent,
   CardMedia,
   CardActions,
   IconButton,
-  InputAdornment,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import { useAnalytics } from '../components/AnalyticsProvider';
-import { heroImage, vegetablesImage, shoppingBagsImage, bambooImage } from '../assets/placeholders';
+import { heroImage, vegetablesImage, shoppingBagsImage, bambooImage, shoesImage, coffeeMakerImage, jacketImage, boardGamesImage, yogaMatImage, blenderImage, childrenBooksImage, gardenToolsImage, laptopStandImage, bicycleImage, artSuppliesImage, deskLampImage } from '../assets/placeholders';
+import SearchBar from '../components/SearchBar';
+import Footer from '../components/Footer';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -33,16 +31,23 @@ const Home: React.FC = () => {
     logPageView('home');
   }, [logPageView]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+  const handleSearch = (query: string) => {
+    if (query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
+  };
+
+  const handleListingClick = (listing: any) => {
+    navigate(`/listing/${listing.id}`, {
+      state: { listing }
+    });
   };
 
   const featuredListings = [
     {
       id: 1,
       title: 'Organic Vegetables',
-      description: 'Fresh organic vegetables from our garden',
+      description: 'Fresh organic vegetables from our garden, including tomatoes, cucumbers, and leafy greens',
       image: vegetablesImage,
       location: 'Sofia, Bulgaria',
       category: 'Food',
@@ -50,7 +55,7 @@ const Home: React.FC = () => {
     {
       id: 2,
       title: 'Reusable Shopping Bags',
-      description: 'Eco-friendly shopping bags made from recycled materials',
+      description: 'Set of 5 eco-friendly shopping bags made from recycled materials, durable and washable',
       image: shoppingBagsImage,
       location: 'Plovdiv, Bulgaria',
       category: 'Accessories',
@@ -58,220 +63,274 @@ const Home: React.FC = () => {
     {
       id: 3,
       title: 'Bamboo Utensils Set',
-      description: 'Complete set of bamboo kitchen utensils',
+      description: 'Complete set of bamboo kitchen utensils including spoons, spatulas, and serving tools',
       image: bambooImage,
       location: 'Varna, Bulgaria',
       category: 'Kitchen',
     },
+    {
+      id: 4,
+      title: 'Running Shoes',
+      description: 'Nike running shoes, size EU 42, gently used, perfect for beginners',
+      image: shoesImage,
+      location: 'Burgas, Bulgaria',
+      category: 'Clothing',
+    },
+    {
+      id: 5,
+      title: 'Coffee Maker',
+      description: 'Philips coffee maker, 1.5L capacity, used for 6 months, works perfectly',
+      image: coffeeMakerImage,
+      location: 'Ruse, Bulgaria',
+      category: 'Appliances',
+    },
+    {
+      id: 6,
+      title: 'Winter Jacket',
+      description: 'Women\'s winter jacket, size M, water-resistant, excellent condition',
+      image: jacketImage,
+      location: 'Sofia, Bulgaria',
+      category: 'Clothing',
+    },
+    {
+      id: 7,
+      title: 'Board Games Collection',
+      description: 'Collection of popular board games including Monopoly, Scrabble, and Chess',
+      image: boardGamesImage,
+      location: 'Plovdiv, Bulgaria',
+      category: 'Entertainment',
+    },
+    {
+      id: 8,
+      title: 'Yoga Mat',
+      description: 'Eco-friendly yoga mat made from natural rubber, 4mm thickness, barely used',
+      image: yogaMatImage,
+      location: 'Varna, Bulgaria',
+      category: 'Sports',
+    },
+    {
+      id: 9,
+      title: 'Blender',
+      description: 'High-speed blender perfect for smoothies and soups, 800W power',
+      image: blenderImage,
+      location: 'Burgas, Bulgaria',
+      category: 'Appliances',
+    },
+    {
+      id: 10,
+      title: 'Children\'s Books',
+      description: 'Collection of 15 children\'s books in excellent condition, suitable for ages 5-8',
+      image: childrenBooksImage,
+      location: 'Sofia, Bulgaria',
+      category: 'Books',
+    },
+    {
+      id: 11,
+      title: 'Garden Tools Set',
+      description: 'Complete set of garden tools including shovel, rake, and pruning shears',
+      image: gardenToolsImage,
+      location: 'Stara Zagora, Bulgaria',
+      category: 'Tools',
+    },
+    {
+      id: 12,
+      title: 'Laptop Stand',
+      description: 'Adjustable aluminum laptop stand, ergonomic design, foldable',
+      image: laptopStandImage,
+      location: 'Veliko Tarnovo, Bulgaria',
+      category: 'Electronics',
+    },
+    {
+      id: 13,
+      title: 'Bicycle',
+      description: 'Mountain bike in good condition, 26" wheels, recently serviced',
+      image: bicycleImage,
+      location: 'Sofia, Bulgaria',
+      category: 'Sports',
+    },
+    {
+      id: 14,
+      title: 'Art Supplies',
+      description: 'Set of acrylic paints, brushes, and canvas boards, perfect for beginners',
+      image: artSuppliesImage,
+      location: 'Plovdiv, Bulgaria',
+      category: 'Hobbies',
+    },
+    {
+      id: 15,
+      title: 'Desk Lamp',
+      description: 'LED desk lamp with adjustable brightness and color temperature',
+      image: deskLampImage,
+      location: 'Varna, Bulgaria',
+      category: 'Electronics',
+    }
   ];
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Hero Section */}
-      <Box
-        sx={{
-          width: '100%',
-          minHeight: { xs: '50vh', sm: '60vh', md: '70vh' },
-          background: 'linear-gradient(45deg, #2E7D32 30%, #4CAF50 90%)',
-          position: 'relative',
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          mb: { xs: 4, sm: 6, md: 8 },
-        }}
-      >
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      minHeight: '100vh' 
+    }}>
+      <Box sx={{ flex: 1 }}>
+        {/* Hero Section */}
         <Box
           sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `url(${heroImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.2,
-          }}
-        />
-        <Container maxWidth={false} sx={{ position: 'relative', zIndex: 1 }}>
-          <Box
-            sx={{
-              maxWidth: '800px',
-              mx: 'auto',
-              textAlign: 'center',
-              color: 'white',
-              px: { xs: 2, sm: 3, md: 4 },
-            }}
-          >
-            <Typography
-              variant={isMobile ? 'h3' : 'h2'}
-              component="h1"
-              gutterBottom
-              sx={{
-                fontWeight: 700,
-                textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-                mb: { xs: 2, sm: 3 },
-              }}
-            >
-              Welcome to Zero-Waste Swap
-            </Typography>
-            <Typography
-              variant={isMobile ? 'h6' : 'h5'}
-              sx={{ 
-                mb: { xs: 3, sm: 4 },
-                textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
-                px: { xs: 2, sm: 0 },
-              }}
-            >
-              Join our community of eco-conscious individuals
-            </Typography>
-            <Box
-              component="form"
-              onSubmit={handleSearch}
-              sx={{
-                maxWidth: '600px',
-                mx: 'auto',
-                '& .MuiTextField-root': {
-                  backgroundColor: 'rgba(255,255,255,0.9)',
-                  borderRadius: 1,
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: 'white',
-                    },
-                  },
-                },
-              }}
-            >
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder="Search for items to swap..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton type="submit" color="primary">
-                        <SearchIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          </Box>
-        </Container>
-      </Box>
-
-      {/* Featured Listings Section */}
-      <Container maxWidth={false} sx={{ py: { xs: 4, sm: 6, md: 8 } }}>
-        <Typography
-          variant="h4"
-          component="h2"
-          gutterBottom
-          sx={{ 
-            textAlign: 'center', 
-            mb: { xs: 4, sm: 6 },
-            px: { xs: 2, sm: 0 },
+            width: '100%',
+            minHeight: { xs: '50vh', sm: '60vh', md: '70vh' },
+            background: 'linear-gradient(45deg, #2E7D32 30%, #4CAF50 90%)',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            mb: { xs: 4, sm: 6, md: 8 },
           }}
         >
-          Featured Listings
-        </Typography>
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
-          {featuredListings.map((listing) => (
-            <Grid item xs={12} sm={6} md={4} key={listing.id}>
-              <Card
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage: `url(${heroImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: 0.2,
+            }}
+          />
+          <Container maxWidth={false} sx={{ position: 'relative', zIndex: 1 }}>
+            <Box
+              sx={{
+                maxWidth: '800px',
+                mx: 'auto',
+                textAlign: 'center',
+                color: 'white',
+                px: { xs: 2, sm: 3, md: 4 },
+              }}
+            >
+              <Typography
+                variant={isMobile ? 'h3' : 'h2'}
+                component="h1"
+                gutterBottom
                 sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
+                  fontWeight: 700,
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                  mb: { xs: 2, sm: 3 },
+                }}
+              >
+                Welcome to Zero-Waste Swap
+              </Typography>
+              <Typography
+                variant={isMobile ? 'h6' : 'h5'}
+                sx={{ 
+                  mb: { xs: 3, sm: 4 },
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+                  px: { xs: 2, sm: 0 },
+                }}
+              >
+                Join our community of eco-conscious individuals
+              </Typography>
+              <Box
+                sx={{
+                  maxWidth: '600px',
+                  mx: 'auto',
+                  '& .MuiTextField-root': {
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    borderRadius: 1,
                   },
                 }}
               >
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={listing.image}
-                  alt={listing.title}
+                <SearchBar
+                  value={searchQuery}
+                  onChange={(value) => {
+                    setSearchQuery(value);
+                    handleSearch(value);
+                  }}
+                  placeholder="Search for items to swap..."
                 />
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography gutterBottom variant="h6" component="h3">
-                    {listing.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    {listing.description}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Location: {listing.location}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Category: {listing.category}
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <IconButton size="small">
-                    <FavoriteIcon />
-                  </IconButton>
-                  <IconButton size="small">
-                    <ShareIcon />
-                  </IconButton>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+              </Box>
+            </Box>
+          </Container>
+        </Box>
 
-      {/* Call to Action Section */}
-      <Box
-        sx={{
-          width: '100%',
-          py: { xs: 6, sm: 8, md: 10 },
-          backgroundColor: 'grey.100',
-          textAlign: 'center',
-          mt: { xs: 4, sm: 6, md: 8 },
-        }}
-      >
-        <Container maxWidth={false} sx={{ maxWidth: '1400px' }}>
-          <Typography 
-            variant="h4" 
-            component="h2" 
+        {/* Featured Listings Section */}
+        <Container maxWidth={false} sx={{ py: { xs: 4, sm: 6, md: 8 } }}>
+          <Typography
+            variant="h4"
+            component="h2"
             gutterBottom
             sx={{ 
-              mb: { xs: 2, sm: 3 },
+              textAlign: 'center', 
+              mb: { xs: 4, sm: 6 },
               px: { xs: 2, sm: 0 },
             }}
           >
-            Ready to Start Swapping?
+            Featured Listings
           </Typography>
-          <Typography 
-            variant="h6" 
-            color="text.secondary" 
-            paragraph
-            sx={{ 
-              mb: { xs: 3, sm: 4 },
-              px: { xs: 2, sm: 0 },
-            }}
-          >
-            Join our community and start making a difference today
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate('/register')}
-            sx={{ 
-              mt: 2,
-              px: { xs: 4, sm: 6 },
-              py: { xs: 1, sm: 1.5 },
-            }}
-          >
-            Get Started
-          </Button>
+          <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+            {featuredListings.map((listing) => (
+              <Grid item xs={12} sm={6} md={4} key={listing.id}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 6,
+                    },
+                  }}
+                  onClick={() => handleListingClick(listing)}
+                >
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={listing.image}
+                    alt={listing.title}
+                    sx={{ objectFit: 'cover' }}
+                  />
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Typography gutterBottom variant="h6" component="h3">
+                      {listing.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {listing.description}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      {listing.location}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <IconButton 
+                      aria-label="add to favorites"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Handle favorite action
+                      }}
+                    >
+                      <FavoriteIcon />
+                    </IconButton>
+                    <IconButton 
+                      aria-label="share"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Handle share action
+                      }}
+                    >
+                      <ShareIcon />
+                    </IconButton>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         </Container>
       </Box>
+
+      <Footer />
     </Box>
   );
 };

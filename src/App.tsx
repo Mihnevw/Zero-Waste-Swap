@@ -1,4 +1,4 @@
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, Box, Container } from '@mui/material';
 import { theme } from './theme';
 import Navbar from './components/Navbar';
@@ -6,6 +6,7 @@ import AppRoutes from './routes';
 import { AuthProvider } from './contexts/AuthContext';
 import { AnalyticsProvider } from './components/AnalyticsProvider';
 import { useTheme } from '@mui/material';
+import ListingDetails from './pages/ListingDetails';
 
 const AppContent = () => {
   const theme = useTheme();
@@ -49,7 +50,10 @@ const AppContent = () => {
             }
           }}
         >
-          <AppRoutes />
+          <Routes>
+            <Route path="/" element={<AppRoutes />} />
+            <Route path="/listing/:id" element={<ListingDetails />} />
+          </Routes>
         </Container>
       </Box>
     </Box>
