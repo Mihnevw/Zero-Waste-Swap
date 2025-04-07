@@ -11,8 +11,6 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import FacebookIcon from '@mui/icons-material/Facebook';
-import TwitterIcon from '@mui/icons-material/Twitter';
-import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -109,8 +107,8 @@ const Footer: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <EmailIcon sx={{ mr: 1 }} />
-              <Link href="mailto:contact@zerowaste.com" color="inherit">
-                contact@zerowaste.com
+              <Link href="mailto:stilianmihnev@gmail.com" color="inherit">
+                stilianmihnev@gmail.com
               </Link>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -122,7 +120,7 @@ const Footer: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <LocationOnIcon sx={{ mr: 1 }} />
               <Typography variant="body2">
-                Sofia, Bulgaria
+                Sliven, Bulgaria
               </Typography>
             </Box>
           </Grid>
@@ -133,16 +131,10 @@ const Footer: React.FC = () => {
               Follow Us
             </Typography>
             <Box>
-              <IconButton color="inherit" aria-label="Facebook">
+              <IconButton color="inherit" aria-label="Facebook" href="https://www.facebook.com/stilian.mihnev">
                 <FacebookIcon />
               </IconButton>
-              <IconButton color="inherit" aria-label="Twitter">
-                <TwitterIcon />
-              </IconButton>
-              <IconButton color="inherit" aria-label="Instagram">
-                <InstagramIcon />
-              </IconButton>
-              <IconButton color="inherit" aria-label="LinkedIn">
+              <IconButton color="inherit" aria-label="LinkedIn" href='https://www.linkedin.com/in/stilian-mihnev/'>
                 <LinkedInIcon />
               </IconButton>
             </Box>
