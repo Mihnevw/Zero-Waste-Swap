@@ -2,13 +2,11 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, getDocs, QuerySnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Listing } from '../types/listing';
-import { useAuth } from './useAuth';
 
 export const useListings = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -37,12 +35,6 @@ export const useListings = () => {
         
         setLoading(true);
         setError(null);
-
-        if (!user) {
-          console.log('User not authenticated, skipping listings fetch');
-          setLoading(false);
-          return;
-        }
 
         const q = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
 
@@ -101,7 +93,7 @@ export const useListings = () => {
         unsubscribe();
       }
     };
-  }, [user]);
+  }, []);
 
   return { listings, loading, error };
 }; 

@@ -14,7 +14,7 @@ service cloud.firestore {
 
     // Listings collection rules
     match /listings/{listingId} {
-      allow read: if isAuthenticated();
+      allow read: if true;  // Allow public read access
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }

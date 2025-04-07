@@ -20,6 +20,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  CircularProgress,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
@@ -31,16 +32,25 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   Person as PersonIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import Footer from '../components/Footer';
+import { useAuth } from '../hooks/useAuth';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 const ListingDetails: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useAuth();
   const [imageDialogOpen, setImageDialogOpen] = React.useState(false);
   const [contactDialogOpen, setContactDialogOpen] = React.useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const listing = location.state?.listing;
 
@@ -52,10 +62,10 @@ const ListingDetails: React.FC = () => {
         </Typography>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/')}
+          onClick={() => navigate(-1)}
           sx={{ mt: 2 }}
         >
-          Back to Home
+          Go Back
         </Button>
       </Container>
     );
@@ -69,6 +79,44 @@ const ListingDetails: React.FC = () => {
     setContactDialogOpen(false);
   };
 
+  const handleEditClick = () => {
+    navigate(`/edit-listing/${listing.id}`, { state: { listing } });
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await deleteDoc(doc(db, 'listings', listing.id));
+      navigate('/profile');
+    } catch (err) {
+      console.error('Error deleting listing:', err);
+      setError('Failed to delete listing. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isOwner = user?.uid === listing.userId;
+
+  const formatLocation = (location: any) => {
+    if (!location) return 'Location not specified';
+    if (typeof location === 'string') return location;
+    return location.address || 'Location not specified';
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -76,13 +124,38 @@ const ListingDetails: React.FC = () => {
       minHeight: '100vh'
     }}>
       <Container maxWidth="lg" sx={{ flex: 1, py: 4 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/')}
-          sx={{ mb: 3 }}
-        >
-          Back to Home
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(-1)}
+          >
+            Go Back
+          </Button>
+          {isOwner && (
+            <Box>
+              <Button
+                startIcon={<EditIcon />}
+                onClick={handleEditClick}
+                sx={{ mr: 1 }}
+              >
+                Edit
+              </Button>
+              <Button
+                startIcon={<DeleteIcon />}
+                onClick={handleDeleteClick}
+                color="error"
+              >
+                Delete
+              </Button>
+            </Box>
+          )}
+        </Box>
+
+        {error && (
+          <Typography color="error" sx={{ mb: 2 }}>
+            {error}
+          </Typography>
+        )}
 
         <Grid container spacing={4}>
           {/* Left Column - Image */}
@@ -99,7 +172,7 @@ const ListingDetails: React.FC = () => {
             >
               <Box
                 component="img"
-                src={listing.image}
+                src={listing.images?.[0] || '/placeholder-image.jpg'}
                 alt={listing.title}
                 sx={{
                   width: '100%',
@@ -148,138 +221,128 @@ const ListingDetails: React.FC = () => {
               <Box sx={{ mb: 3 }}>
                 <Chip
                   icon={<CategoryIcon />}
-                  label={listing.category}
+                  label={listing.category || 'Uncategorized'}
                   sx={{ mr: 1 }}
                 />
                 <Chip
                   icon={<LocationIcon />}
-                  label={listing.location}
+                  label={formatLocation(listing.location)}
                 />
               </Box>
 
-              <Typography variant="h6" color="primary" gutterBottom>
-                Description
-              </Typography>
               <Typography variant="body1" paragraph>
                 {listing.description}
               </Typography>
 
-              <Divider sx={{ my: 3 }} />
-
-              <Box sx={{ mb: 3 }}>
+              <Box sx={{ mt: 4 }}>
                 <Button
                   variant="contained"
                   color="primary"
-                  fullWidth
+                  size="large"
                   onClick={handleContactClick}
+                  fullWidth
                 >
                   Contact Seller
                 </Button>
-              </Box>
-
-              <Box sx={{ mt: 4 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Listed in {listing.category}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Location: {listing.location}
-                </Typography>
               </Box>
             </Box>
           </Grid>
         </Grid>
 
-        {/* Image Dialog for fullscreen view */}
-        <Dialog
-          open={imageDialogOpen}
-          onClose={() => setImageDialogOpen(false)}
-          maxWidth="xl"
-          fullScreen={isMobile}
-        >
-          <DialogContent sx={{ p: 0 }}>
-            <Box
-              component="img"
-              src={listing.image}
-              alt={listing.title}
-              sx={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                bgcolor: 'background.paper',
-              }}
-              onClick={() => setImageDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-
-        {/* Contact Seller Dialog */}
-        <Dialog
-          open={contactDialogOpen}
-          onClose={handleCloseContactDialog}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Contact Seller</DialogTitle>
+        {/* Contact Dialog */}
+        <Dialog open={contactDialogOpen} onClose={handleCloseContactDialog}>
+          <DialogTitle>Contact Information</DialogTitle>
           <DialogContent>
             <List>
               <ListItem>
                 <ListItemIcon>
-                  <PersonIcon color="primary" />
+                  <PersonIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary="Seller Name" 
-                  secondary={listing.sellerName || "Anonymous User"} 
+                  primary="Seller"
+                  secondary={listing.userName || 'Anonymous'}
                 />
               </ListItem>
+              {listing.userEmail && (
+                <ListItem>
+                  <ListItemIcon>
+                    <EmailIcon />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Email"
+                    secondary={listing.userEmail}
+                  />
+                </ListItem>
+              )}
               <ListItem>
                 <ListItemIcon>
-                  <EmailIcon color="primary" />
+                  <LocationIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary="Email" 
-                  secondary={listing.sellerEmail || "Not provided"} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <PhoneIcon color="primary" />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Phone" 
-                  secondary={listing.sellerPhone || "Not provided"} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <LocationIcon color="primary" />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Location" 
-                  secondary={listing.location} 
+                  primary="Location"
+                  secondary={formatLocation(listing.location)}
                 />
               </ListItem>
             </List>
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Please be respectful when contacting the seller. All communications should be related to the item listed.
-              </Typography>
-            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              Please be respectful and follow our community guidelines when contacting sellers.
+            </Typography>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseContactDialog}>Close</Button>
-            {listing.sellerEmail && (
-              <Button 
-                variant="contained" 
+            {listing.userEmail && (
+              <Button
+                variant="contained"
                 color="primary"
-                onClick={() => window.location.href = `mailto:${listing.sellerEmail}`}
+                href={`mailto:${listing.userEmail}?subject=Regarding your listing: ${listing.title}`}
               >
                 Send Email
               </Button>
             )}
           </DialogActions>
         </Dialog>
-      </Container>
 
+        {/* Image Dialog */}
+        <Dialog
+          open={imageDialogOpen}
+          onClose={() => setImageDialogOpen(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogContent>
+            <Box
+              component="img"
+              src={listing.images?.[0] || '/placeholder-image.jpg'}
+              alt={listing.title}
+              sx={{
+                width: '100%',
+                height: 'auto',
+                maxHeight: '80vh',
+                objectFit: 'contain',
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setImageDialogOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+          <DialogTitle>Delete Listing</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete this listing? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
       <Footer />
     </Box>
   );

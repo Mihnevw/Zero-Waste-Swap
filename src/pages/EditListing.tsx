@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../hooks/useAuth';
-import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Listing } from '../types/listing';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -37,10 +37,11 @@ const conditions = ['new', 'like-new', 'good', 'fair', 'poor'] as const;
 
 const EditListing = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Listing>>({
     title: '',
@@ -51,38 +52,24 @@ const EditListing = () => {
   });
 
   useEffect(() => {
-    const fetchListing = async () => {
-      try {
-        if (!id || !user) return;
-        
-        const docRef = doc(db, 'listings', id);
-        const docSnap = await getDoc(docRef);
+    if (!authLoading && !user) {
+      navigate('/login');
+      return;
+    }
 
-        if (docSnap.exists()) {
-          const data = docSnap.data() as Listing;
-          if (data.userId !== user.uid) {
-            navigate('/');
-            return;
-          }
-          setFormData({
-            title: data.title,
-            description: data.description,
-            category: data.category,
-            condition: data.condition,
-            images: data.images || [],
-          });
-        } else {
-          setError('Listing not found');
-        }
-      } catch (err) {
-        setError('Error fetching listing details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchListing();
-  }, [id, user, navigate]);
+    const listing = location.state?.listing;
+    if (listing) {
+      setFormData({
+        title: listing.title,
+        description: listing.description,
+        category: listing.category,
+        condition: listing.condition,
+        images: listing.images,
+      });
+    } else {
+      setError('Listing data not found');
+    }
+  }, [authLoading, user, navigate, location.state]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -119,6 +106,7 @@ const EditListing = () => {
     if (!user || !id) return;
 
     try {
+      setLoading(true);
       const docRef = doc(db, 'listings', id);
       await updateDoc(docRef, {
         ...formData,
@@ -127,6 +115,8 @@ const EditListing = () => {
       navigate('/profile');
     } catch (err) {
       setError('Failed to update listing. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -146,7 +136,7 @@ const EditListing = () => {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center',
-        minHeight: 'calc(100vh - 64px)', // Account for navbar height
+        minHeight: 'calc(100vh - 64px)',
         width: '100%'
       }}>
         <CircularProgress />
@@ -212,7 +202,7 @@ const EditListing = () => {
             </Alert>
           )}
 
-          <Box 
+          <Box
             component="form" 
             onSubmit={handleSubmit} 
             sx={{ 
@@ -283,7 +273,7 @@ const EditListing = () => {
                   Images
                 </Typography>
                 <Grid container spacing={2}>
-                  {(formData.images || []).map((image, index) => (
+                  {formData.images?.map((image, index) => (
                     <Grid item xs={12} sm={6} md={4} key={index}>
                       <Box sx={{ position: 'relative', height: '200px' }}>
                         <img
@@ -330,7 +320,7 @@ const EditListing = () => {
                   </Button>
                 </Box>
               </Grid>
-              <Grid item xs={12} sx={{ mt: 'auto' }}>
+              <Grid item xs={12}>
                 <Button
                   type="submit"
                   variant="contained"

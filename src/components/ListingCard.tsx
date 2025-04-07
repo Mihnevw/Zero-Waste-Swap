@@ -18,7 +18,7 @@ const ListingCard = ({ listing }: ListingCardProps) => {
           boxShadow: 6,
         },
       }}
-      onClick={() => navigate(`/listing/${listing.id}`)}
+      onClick={() => navigate(`/listing/${listing.id}`, { state: { listing } })}
     >
       <CardMedia
         component="img"

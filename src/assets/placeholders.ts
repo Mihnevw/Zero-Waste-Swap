@@ -7,7 +7,7 @@ export const shoppingBagsImage = 'https://images.unsplash.com/photo-1555529669-e
 
 export const bambooImage = 'https://jungleculture.eco/cdn/shop/files/SQUARE-Bamboo-Cutlery-Set_1_d599e041-8557-4a55-9a54-7067752fbff0_2048x.jpg?v=1691488817';
 
-export const shoesImage = 'https://s3.amazonaws.com/www.irunfar.com/wp-content/uploads/2024/07/25053122/Best-Trail-Running-Shoes-Hoka-Speedgoat-6.jpg';
+export const shoesImage = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
 
 export const coffeeMakerImage = 'https://m.media-amazon.com/images/I/818gyfjYmZL.jpg';
 

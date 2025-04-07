@@ -38,8 +38,26 @@ const Home: React.FC = () => {
   };
 
   const handleListingClick = (listing: any) => {
+    // Format the listing data to match our Listing type
+    const formattedListing = {
+      ...listing,
+      images: [listing.image], // Convert single image to images array
+      location: {
+        address: listing.location,
+        latitude: 0,
+        longitude: 0
+      },
+      userId: 'demo',
+      userName: 'Demo User',
+      userEmail: 'demo@example.com',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      condition: 'good',
+      status: 'available' as const
+    };
+
     navigate(`/listing/${listing.id}`, {
-      state: { listing }
+      state: { listing: formattedListing }
     });
   };
 
