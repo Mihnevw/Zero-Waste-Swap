@@ -1,0 +1,47 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+          && request.resource.size < 5 * 1024 * 1024; // 5MB
+    }
+
+    function isAllowedOrigin() {
+      return request.origin == null ||
+             request.origin.matches('http://localhost:3000') ||
+             request.origin.matches('http://localhost:5173') ||
+             request.origin.matches('https://zero-waste-swap.web.app');
+    }
+
+    // Rules for listing images
+    match /listings/{userId}/{imageId} {
+      // Allow read access to all authenticated users from allowed origins
+      allow read: if isAuthenticated() && isAllowedOrigin();
+      
+      // Allow write access only to authenticated users in their own directory
+      allow write: if isAuthenticated()
+                  && isOwner(userId)
+                  && isValidImage()
+                  && isAllowedOrigin();
+
+      // Allow OPTIONS requests for CORS preflight
+      allow options: if isAllowedOrigin();
+    }
+    
+    // Default rule - deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+      // Allow OPTIONS requests for CORS preflight
+      allow options: if isAllowedOrigin();
+    }
+  }
+} 

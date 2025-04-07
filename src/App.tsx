@@ -5,11 +5,10 @@ import Navbar from './components/Navbar';
 import AppRoutes from './routes';
 import { AuthProvider } from './contexts/AuthContext';
 import { AnalyticsProvider } from './components/AnalyticsProvider';
-import { useTheme, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material';
 
 const AppContent = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <Box sx={{ 

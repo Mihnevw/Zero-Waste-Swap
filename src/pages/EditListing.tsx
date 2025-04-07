@@ -21,7 +21,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import ImageUpload from '../components/ImageUpload';
 import { Listing } from '../types/listing';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
