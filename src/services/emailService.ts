@@ -11,12 +11,12 @@ export const sendWelcomeEmail = async (email: string, name: string) => {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to send welcome email');
+      throw new Error('Грешка при изпращане на приветствен имейл');
     }
 
-    console.log('Welcome email sent successfully');
+    console.log('Приветственият имейл е изпратен успешно');
   } catch (error) {
-    console.error('Error sending welcome email:', error);
+    console.error('Грешка при изпращане на приветствен имейл:', error);
     throw error;
   }
 }; 

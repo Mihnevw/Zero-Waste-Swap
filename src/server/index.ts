@@ -23,32 +23,32 @@ app.post('/api/send-welcome-email', async (req, res) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: 'Welcome to Zero-Waste Swap!',
+    subject: 'Добре дошли в Zero-Waste Swap!',
     html: `
-      <h1>Welcome to Zero-Waste Swap, ${name}!</h1>
-      <p>Thank you for joining our community. We're excited to have you on board!</p>
-      <p>With Zero-Waste Swap, you can:</p>
+      <h1>Добре дошли в Zero-Waste Swap, ${name}!</h1>
+      <p>Благодарим ви, че се присъединихте към нашата общност. Радваме се, че сте с нас!</p>
+      <p>С Zero-Waste Swap можете да:</p>
       <ul>
-        <li>List items you want to swap</li>
-        <li>Find items from other users</li>
-        <li>Connect with like-minded people</li>
-        <li>Contribute to a sustainable future</li>
+        <li>Публикувате предмети за размяна</li>
+        <li>Намерите предмети от други потребители</li>
+        <li>Свържете се с хора със сходни интереси</li>
+        <li>Допринесете за устойчиво бъдеще</li>
       </ul>
-      <p>Happy swapping!</p>
+      <p>Приятно разменяне!</p>
     `,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Welcome email sent successfully');
+    console.log('Приветственият имейл е изпратен успешно');
     res.json({ success: true });
   } catch (error) {
-    console.error('Error sending welcome email:', error);
-    res.status(500).json({ error: 'Failed to send welcome email' });
+    console.error('Грешка при изпращане на приветствен имейл:', error);
+    res.status(500).json({ error: 'Грешка при изпращане на приветствен имейл' });
   }
 });
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Сървърът работи на порт ${PORT}`);
 }); 
