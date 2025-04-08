@@ -17,12 +17,38 @@ import {
   Chip,
   Button,
   Divider,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { useAnalytics } from '../components/AnalyticsProvider';
-import { heroImage, vegetablesImage, shoppingBagsImage, bambooImage, shoesImage, coffeeMakerImage, jacketImage, boardGamesImage, yogaMatImage, blenderImage, childrenBooksImage, gardenToolsImage, laptopStandImage, bicycleImage, artSuppliesImage, deskLampImage, laptopImage } from '../assets/placeholders';
+import { 
+  heroImage, 
+  vegetablesImage, 
+  shoppingBagsImage, 
+  bambooImage, 
+  shoesImage, 
+  coffeeMakerImage, 
+  jacketImage, 
+  boardGamesImage, 
+  yogaMatImage, 
+  blenderImage, 
+  childrenBooksImage, 
+  gardenToolsImage, 
+  laptopStandImage, 
+  bicycleImage, 
+  artSuppliesImage, 
+  deskLampImage, 
+  laptopImage,
+  clothesImage,
+  electronicsImage,
+  booksImage,
+  furnitureImage,
+  toysImage,
+  sportsImage
+} from '../assets/placeholders';
 import SearchBar from '../components/SearchBar';
 import Footer from '../components/Footer';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
@@ -30,6 +56,7 @@ import { db } from '../config/firebase';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
+import AnimatedPage from '../components/AnimatedPage';
 
 interface Listing {
   id: string;
@@ -59,6 +86,16 @@ const Home: React.FC = () => {
   const { favorites, toggleFavorite } = useFavorites();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const categories = [
+    { id: 'clothing', name: 'Дрехи', image: clothesImage },
+    { id: 'electronics', name: 'Електроника', image: electronicsImage },
+    { id: 'books', name: 'Книги', image: booksImage },
+    { id: 'furniture', name: 'Мебели', image: furnitureImage },
+    { id: 'toys', name: 'Играчки', image: toysImage },
+    { id: 'sports', name: 'Спорт', image: sportsImage },
+  ];
 
   useEffect(() => {
     logPageView('home');
@@ -81,15 +118,22 @@ const Home: React.FC = () => {
       setRecentListings(listings);
     } catch (error) {
       console.error('Error fetching recent listings:', error);
+      setError('Възникна грешка при зареждане на обявите');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (query: string) => {
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-    }
+  const handleSearch = () => {
+    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+  };
+
+  const handleSearchQueryChange = (value: string) => {
+    setSearchQuery(value);
+  };
+
+  const handleCategoryClick = (categoryId: string) => {
+    navigate(`/search?category=${categoryId}`);
   };
 
   const handleListingClick = (listing: any, isDemoListing: boolean = false) => {
@@ -353,105 +397,293 @@ const Home: React.FC = () => {
   ];
 
   return (
-    <>
-      <Box
-        sx={{
-          background: `url(${heroImage}) no-repeat center center`,
-          backgroundSize: 'cover',
-          height: '60vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          mb: 6,
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          },
-        }}
-      >
+    <AnimatedPage animation="fade">
+      <Box>
+        {/* Hero Section */}
         <Box
           sx={{
             position: 'relative',
-            textAlign: 'center',
-            color: 'white',
-            px: 2,
+            height: '100vh',
+            minHeight: 600,
+            backgroundImage: `url(${heroImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%)',
+            },
           }}
         >
-          <Typography
-            variant={isMobile ? 'h4' : 'h2'}
-            component="h1"
-            gutterBottom
-            sx={{ fontWeight: 'bold' }}
-          >
-            Zero Waste Swap Platform
-          </Typography>
-          <Typography variant="h6" sx={{ mb: 4 }}>
-            Give your items a second life and help reduce waste
-          </Typography>
-          <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              onSearch={handleSearch}
-              placeholder="Search for items..."
-              variant="home"
-            />
-          </Box>
+          <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
+            <AnimatedPage animation="fade" delay={0.2}>
+              <Typography
+                variant="h2"
+                component="h1"
+                align="center"
+                color="white"
+                sx={{
+                  mb: 2,
+                  fontWeight: 'bold',
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+                }}
+              >
+                Споделете. Обновете. Пазете природата.
+              </Typography>
+              <Typography
+                variant="h4"
+                align="center"
+                color="white"
+                sx={{
+                  mb: 4,
+                  textShadow: '1px 1px 3px rgba(0,0,0,0.5)',
+                  fontWeight: 300,
+                }}
+              >
+                Вашите вещи заслужават втори шанс
+              </Typography>
+            </AnimatedPage>
+            <AnimatedPage animation="fade" delay={0.4}>
+              <SearchBar
+                value={searchQuery}
+                onChange={handleSearchQueryChange}
+                onSearch={handleSearch}
+              />
+            </AnimatedPage>
+          </Container>
         </Box>
-      </Box>
 
-      <Container maxWidth="lg">
-        <Box sx={{ mb: 4 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(_, newValue) => setActiveTab(newValue)}
-            centered
-            sx={{ mb: 3 }}
-          >
-            <Tab label="Recent Listings" />
-            <Tab label="Featured Items" />
-          </Tabs>
+        {/* Rest of the content */}
+        <Box sx={{ mt: -8, position: 'relative', zIndex: 2, bgcolor: 'background.paper' }}>
+          {/* Categories Section */}
+          <Container maxWidth="lg" sx={{ py: 8 }}>
+            <AnimatedPage animation="slide" delay={0.6}>
+              <Typography
+                variant="h4"
+                component="h2"
+                gutterBottom
+                align="center"
+                sx={{
+                  mb: 6,
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: -8,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 60,
+                    height: 4,
+                    bgcolor: 'primary.main',
+                    borderRadius: 2,
+                  },
+                }}
+              >
+                Категории
+              </Typography>
+            </AnimatedPage>
+            <Grid container spacing={4}>
+              {categories.map((category, index) => (
+                <Grid item xs={12} sm={6} md={4} key={category.id}>
+                  <AnimatedPage animation="scale" delay={0.8 + index * 0.1}>
+                    <Card
+                      sx={{
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: theme.shadows[4],
+                        },
+                      }}
+                      onClick={() => handleCategoryClick(category.id)}
+                    >
+                      <CardMedia
+                        component="img"
+                        height="140"
+                        image={category.image}
+                        alt={category.name}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                      <CardContent sx={{ flexGrow: 1 }}>
+                        <Typography gutterBottom variant="h6" component="div" align="center">
+                          {category.name}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </AnimatedPage>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
 
-          {activeTab === 0 && (
-            <>
-              <Grid container spacing={3}>
-                {recentListings.map((listing) => (
-                  <Grid item xs={12} sm={6} md={3} key={listing.id}>
-                    {renderListingCard(listing)}
-                  </Grid>
-                ))}
-              </Grid>
-              <Box sx={{ textAlign: 'center', mt: 4 }}>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => navigate('/search')}
-                >
-                  View All Listings
-                </Button>
-              </Box>
-            </>
-          )}
-
-          {activeTab === 1 && (
-            <Grid container spacing={3}>
+          {/* Featured Listings */}
+          <Container maxWidth="lg" sx={{ py: 8 }}>
+            <AnimatedPage animation="slide" delay={0.6}>
+              <Typography
+                variant="h4"
+                component="h2"
+                gutterBottom
+                align="center"
+                sx={{
+                  mb: 6,
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: -8,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 60,
+                    height: 4,
+                    bgcolor: 'primary.main',
+                    borderRadius: 2,
+                  },
+                }}
+              >
+                Представени обяви
+              </Typography>
+            </AnimatedPage>
+            <Grid container spacing={4} sx={{ mt: 2 }}>
               {featuredListings.map((listing) => (
-                <Grid item xs={12} sm={6} md={3} key={listing.id}>
+                <Grid item xs={12} sm={6} md={4} key={listing.id}>
                   {renderListingCard(listing, true)}
                 </Grid>
               ))}
             </Grid>
-          )}
+          </Container>
+
+          {/* Recent Listings */}
+          <Container maxWidth="lg" sx={{ py: 8 }}>
+            <AnimatedPage animation="slide" delay={0.6}>
+              <Typography
+                variant="h4"
+                component="h2"
+                gutterBottom
+                align="center"
+                sx={{
+                  mb: 6,
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: -8,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 60,
+                    height: 4,
+                    bgcolor: 'primary.main',
+                    borderRadius: 2,
+                  },
+                }}
+              >
+                Последни обяви
+              </Typography>
+            </AnimatedPage>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            ) : recentListings.length === 0 ? (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Все още няма обяви
+              </Alert>
+            ) : (
+              <Grid container spacing={4} sx={{ mt: 2 }}>
+                {recentListings.map((listing) => (
+                  <Grid item xs={12} sm={6} md={4} key={listing.id}>
+                    {renderListingCard(listing)}
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Container>
+
+          {/* How It Works Section */}
+          <Box sx={{ bgcolor: 'background.paper', py: 8 }}>
+            <Container maxWidth="lg">
+              <AnimatedPage animation="slide" delay={0.6}>
+                <Typography
+                  variant="h4"
+                  component="h2"
+                  gutterBottom
+                  align="center"
+                  sx={{
+                    mb: 6,
+                    position: 'relative',
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: -8,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 60,
+                      height: 4,
+                      bgcolor: 'primary.main',
+                      borderRadius: 2,
+                    },
+                  }}
+                >
+                  Как работи?
+                </Typography>
+              </AnimatedPage>
+              <Grid container spacing={4} sx={{ mt: 2 }}>
+                <Grid item xs={12} md={4}>
+                  <AnimatedPage animation="scale" delay={0.8}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" gutterBottom>
+                        1. Създайте обява
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary">
+                        Качете снимки и описание на предмета, който искате да обменяте
+                      </Typography>
+                    </Box>
+                  </AnimatedPage>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <AnimatedPage animation="scale" delay={1.0}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" gutterBottom>
+                        2. Намерете подходящ обмен
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary">
+                        Разгледайте обявите и намерете нещо, което ви интересува
+                      </Typography>
+                    </Box>
+                  </AnimatedPage>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <AnimatedPage animation="scale" delay={1.2}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" gutterBottom>
+                        3. Договорете обмен
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary">
+                        Свържете се с продавача и договорете детайлите на обмена
+                      </Typography>
+                    </Box>
+                  </AnimatedPage>
+                </Grid>
+              </Grid>
+            </Container>
+          </Box>
         </Box>
-      </Container>
+      </Box>
       <Footer />
-    </>
+    </AnimatedPage>
   );
 };
 
