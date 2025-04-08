@@ -33,22 +33,22 @@ const Navbar = () => {
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
 
   const pages = [
-    { title: 'Home', path: '/' },
-    { title: 'Browse', path: '/search' },
-    { title: 'How It Works', path: '/how-it-works' },
-    { title: 'About Us', path: '/about' },
-    { title: 'Contact', path: '/contact' },
+    { title: 'Начало', path: '/' },
+    { title: 'Търсене', path: '/search' },
+    { title: 'Как работи', path: '/how-it-works' },
+    { title: 'За нас', path: '/about' },
+    { title: 'Контакти', path: '/contact' },
   ];
 
   const userMenuItems = user ? [
-    { title: 'Profile', path: '/profile' },
-    { title: 'My Listings', path: '/my-listings' },
-    { title: 'Favorites', path: '/favorites' },
-    { title: 'Settings', path: '/settings' },
-    { title: 'Sign Out', action: logout },
+    { title: 'Профил', path: '/profile' },
+    { title: 'Моите обяви', path: '/my-listings' },
+    { title: 'Любими', path: '/favorites' },
+    { title: 'Настройки', path: '/settings' },
+    { title: 'Изход', action: logout },
   ] : [
-    { title: 'Sign In', path: '/login' },
-    { title: 'Sign Up', path: '/register' },
+    { title: 'Вход', path: '/login' },
+    { title: 'Регистрация', path: '/register' },
   ];
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -171,13 +171,13 @@ const Navbar = () => {
               onClick={() => navigate('/create-listing')}
               sx={{ mr: 2 }}
             >
-              {isMobile ? 'Add' : 'Create Listing'}
+              {isMobile ? 'Добави' : 'Създай обява'}
             </Button>
           )}
 
           {/* User Menu */}
           <Box sx={{ flexShrink: 0 }}>
-            <Tooltip title={user ? 'Account settings' : 'Sign in'}>
+            <Tooltip title={user ? 'Настройки на профила' : 'Вход'}>
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                 <Avatar
                   alt={user?.displayName || 'User'}

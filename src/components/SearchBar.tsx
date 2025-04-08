@@ -15,7 +15,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   value, 
   onChange, 
   onSearch,
-  placeholder = 'Search...', 
+  placeholder = 'Търсене...', 
   sx,
   variant = 'search'
 }) => {
