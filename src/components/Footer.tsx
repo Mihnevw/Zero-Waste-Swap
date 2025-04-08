@@ -17,6 +17,11 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { Link as RouterLink } from 'react-router-dom';
 
+interface Category {
+  name: string;
+  icon: string;
+}
+
 const Footer: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -30,14 +35,20 @@ const Footer: React.FC = () => {
     { title: 'Contact', path: '/contact' },
   ];
 
-  const categories = [
-    'Clothing',
-    'Electronics',
-    'Books',
-    'Furniture',
-    'Sports Equipment',
-    'Kitchen',
-    'Tools',
+  const legalLinks = [
+    { title: 'Privacy Policy', path: '/privacy' },
+    { title: 'Terms of Service', path: '/terms' },
+  ];
+
+  const categories: Category[] = [
+    { name: 'Clothing', icon: '' },
+    { name: 'Electronics', icon: '' },
+    { name: 'Books', icon: '' },
+    { name: 'Furniture', icon: '' },
+    { name: 'Sports Equipment', icon: '' },
+    { name: 'Kitchen', icon: '' },
+    { name: 'Tools', icon: '' },
+    { name: 'Other', icon: '' }
   ];
 
   return (
@@ -54,7 +65,7 @@ const Footer: React.FC = () => {
         <Grid container spacing={4}>
           {/* Quick Links */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
               Quick Links
             </Typography>
             {quickLinks.map((link) => (
@@ -64,10 +75,14 @@ const Footer: React.FC = () => {
                 to={link.path}
                 color="inherit"
                 sx={{
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'center',
                   mb: 1,
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease-in-out',
                   '&:hover': {
                     color: 'secondary.light',
+                    transform: 'translateX(8px)',
                   },
                 }}
               >
@@ -78,89 +93,119 @@ const Footer: React.FC = () => {
 
           {/* Categories */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
               Categories
             </Typography>
             {categories.map((category) => (
               <Link
-                key={category}
+                key={category.name}
                 component={RouterLink}
-                to={`/search?category=${category}`}
+                to={`/search?category=${encodeURIComponent(category.name)}`}
                 color="inherit"
                 sx={{
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'center',
                   mb: 1,
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease-in-out',
                   '&:hover': {
                     color: 'secondary.light',
+                    transform: 'translateX(8px)',
                   },
                 }}
               >
-                {category}
+                {category.name}
               </Link>
             ))}
           </Grid>
 
           {/* Contact Info */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
               Contact Us
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <EmailIcon sx={{ mr: 1 }} />
-              <Link href="mailto:stilianmihnev@gmail.com" color="inherit">
+            <Box sx={{ mb: 2 }}>
+              <Link
+                href="mailto:stilianmihnev@gmail.com"
+                color="inherit"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  mb: 1,
+                  textDecoration: 'none',
+                  '&:hover': { color: 'secondary.light' },
+                }}
+              >
+                <EmailIcon sx={{ mr: 1 }} />
                 stilianmihnev@gmail.com
               </Link>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <PhoneIcon sx={{ mr: 1 }} />
-              <Link href="tel:+359888123456" color="inherit">
+              <Link
+                href="tel:+359888123456"
+                color="inherit"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  mb: 1,
+                  textDecoration: 'none',
+                  '&:hover': { color: 'secondary.light' },
+                }}
+              >
+                <PhoneIcon sx={{ mr: 1 }} />
                 +359 888 123 456
               </Link>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <LocationOnIcon sx={{ mr: 1 }} />
-              <Typography variant="body2">
-                Sliven, Bulgaria
-              </Typography>
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    color: 'secondary.light',
+                    transform: 'translateX(8px)',
+                  },
+                }}
+              >
+                <LocationOnIcon sx={{ mr: 1 }} />
+                <Typography variant="body2">
+                  Sliven, Bulgaria
+                </Typography>
+              </Box>
             </Box>
           </Grid>
 
-          {/* Social Media */}
+          {/* Legal Links */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" gutterBottom>
-              Follow Us
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              Legal
             </Typography>
-            <Box>
-              <IconButton color="inherit" aria-label="Facebook" href="https://www.facebook.com/stilian.mihnev">
-                <FacebookIcon />
-              </IconButton>
-              <IconButton color="inherit" aria-label="LinkedIn" href='https://www.linkedin.com/in/stilian-mihnev/'>
-                <LinkedInIcon />
-              </IconButton>
-            </Box>
-            <Typography variant="body2" sx={{ mt: 2 }}>
-              Join our community for updates and eco-friendly tips!
-            </Typography>
+            {legalLinks.map((link) => (
+              <Link
+                key={link.title}
+                component={RouterLink}
+                to={link.path}
+                color="inherit"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  mb: 1,
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    color: 'secondary.light',
+                    transform: 'translateX(8px)',
+                  },
+                }}
+              >
+                {link.title}
+              </Link>
+            ))}
           </Grid>
         </Grid>
 
-        <Divider sx={{ my: 4, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+        <Divider sx={{ my: 4, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
 
-        {/* Copyright */}
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="body2" color="inherit">
-            © {new Date().getFullYear()} Zero-Waste Swap. All rights reserved.
-          </Typography>
-          <Box sx={{ mt: 1 }}>
-            <Link color="inherit" sx={{ mx: 1 }} component={RouterLink} to="/privacy">
-              Privacy Policy
-            </Link>
-            |
-            <Link color="inherit" sx={{ mx: 1 }} component={RouterLink} to="/terms">
-              Terms of Service
-            </Link>
-          </Box>
-        </Box>
+        <Typography variant="body2" align="center" sx={{ opacity: 0.8 }}>
+          © {new Date().getFullYear()} Zero-Waste Swap Platform. All rights reserved.
+        </Typography>
       </Container>
     </Box>
   );

@@ -58,13 +58,26 @@ export const useFavorites = () => {
       console.log('Toggling favorite:', { 
         listingId: listingIdStr, 
         favoriteId, 
-        exists: favorites.includes(listingIdStr) 
+        exists: favorites.includes(listingIdStr),
+        isDemo: listingIdStr.startsWith('demo_')
       });
 
       if (favorites.includes(listingIdStr)) {
         await deleteDoc(favoriteRef);
         console.log('Favorite deleted:', favoriteId);
       } else {
+        // For demo listings, we don't need to check if the listing exists
+        if (!listingIdStr.startsWith('demo_')) {
+          // Check if the listing exists in Firestore
+          const listingRef = doc(db, 'listings', listingIdStr);
+          const listingDoc = await getDoc(listingRef);
+          
+          if (!listingDoc.exists()) {
+            setError('Listing does not exist');
+            return;
+          }
+        }
+
         const favoriteData = {
           userId: user.uid,
           listingId: listingIdStr,

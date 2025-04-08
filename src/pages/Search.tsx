@@ -79,7 +79,7 @@ const Search = () => {
   const categories = ['all', ...new Set(listings.map(listing => listing.category))];
 
   const searchListings = useCallback((searchText: string) => {
-    if (!searchText.trim()) {
+    if (!searchText.trim() && !categoryFilter) {
       setListings([]);
       return () => {};
     }
@@ -88,18 +88,6 @@ const Search = () => {
     setError('');
 
     try {
-      const searchTerms = searchText
-        .toLowerCase()
-        .trim()
-        .split(/\s+/)
-        .filter(term => term.length >= 2);
-
-      if (searchTerms.length === 0) {
-        setListings([]);
-        setLoading(false);
-        return () => {};
-      }
-
       const listingsRef = collection(db, 'listings');
       const q = query(listingsRef);
 
@@ -122,35 +110,44 @@ const Search = () => {
             } as Listing;
           });
 
-          // Filter and score listings
-          let results = allListings.filter(listing => {
-            const titleLower = listing.title.toLowerCase();
-            const descriptionLower = listing.description.toLowerCase();
-            const categoryLower = listing.category.toLowerCase();
-            
-            return searchTerms.some(term => 
-              titleLower.includes(term) || 
-              descriptionLower.includes(term) || 
-              categoryLower.includes(term)
-            );
-          });
+          let results = allListings;
+
+          // Apply search filter if there's a search query
+          if (searchText.trim()) {
+            const searchTerms = searchText
+              .toLowerCase()
+              .trim()
+              .split(/\s+/)
+              .filter(term => term.length >= 2);
+
+            results = allListings.filter(listing => {
+              const titleLower = listing.title.toLowerCase();
+              const descriptionLower = listing.description.toLowerCase();
+              const categoryLower = listing.category.toLowerCase();
+              
+              return searchTerms.some(term => 
+                titleLower.includes(term) || 
+                descriptionLower.includes(term) || 
+                categoryLower.includes(term)
+              );
+            });
+          }
 
           // Apply category filter
-          if (categoryFilter !== 'all') {
+          if (categoryFilter && categoryFilter !== 'all') {
             results = results.filter(listing => listing.category === categoryFilter);
           }
 
           // Score and sort results
-          let sortedResults = results
-            .map(listing => {
-              const score = searchTerms.reduce((acc, term) => {
-                const titleMatch = listing.title.toLowerCase().includes(term) ? 3 : 0;
-                const descMatch = listing.description.toLowerCase().includes(term) ? 1 : 0;
-                const categoryMatch = listing.category.toLowerCase().includes(term) ? 2 : 0;
-                return acc + titleMatch + descMatch + categoryMatch;
-              }, 0);
-              return { ...listing, score };
-            });
+          let sortedResults = results.map(listing => {
+            const score = searchText.trim() ? searchText.toLowerCase().split(/\s+/).reduce((acc, term) => {
+              const titleMatch = listing.title.toLowerCase().includes(term) ? 3 : 0;
+              const descMatch = listing.description.toLowerCase().includes(term) ? 1 : 0;
+              const categoryMatch = listing.category.toLowerCase().includes(term) ? 2 : 0;
+              return acc + titleMatch + descMatch + categoryMatch;
+            }, 0) : 0;
+            return { ...listing, score };
+          });
 
           // Apply sorting
           switch (sortBy) {
@@ -162,10 +159,14 @@ const Search = () => {
               break;
             case 'relevance':
             default:
-              sortedResults.sort((a, b) => {
-                if (b.score !== a.score) return b.score - a.score;
-                return b.createdAt - a.createdAt;
-              });
+              if (searchText.trim()) {
+                sortedResults.sort((a, b) => {
+                  if (b.score !== a.score) return b.score - a.score;
+                  return b.createdAt - a.createdAt;
+                });
+              } else {
+                sortedResults.sort((a, b) => b.createdAt - a.createdAt);
+              }
           }
 
           setListings(sortedResults.map(({ score, ...listing }) => listing));
@@ -214,10 +215,42 @@ const Search = () => {
     };
   }, [searchParams, searchListings]);
 
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setCategoryFilter(categoryParam);
+      // If there's no search query but there's a category, search with empty string to show all items in category
+      if (!searchQuery) {
+        const unsubscribe = searchListings(' ');
+        return () => {
+          if (typeof unsubscribe === 'function') {
+            unsubscribe();
+          }
+        };
+      }
+    }
+  }, [searchParams, searchQuery, searchListings]);
+
+  useEffect(() => {
+    if (!searchQuery) return;
+    
+    const unsubscribe = debouncedSearch(searchQuery);
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [debouncedSearch, searchQuery]);
+
   const handleSearch = (newQuery: string) => {
     setSearchQuery(newQuery);
-    setSearchParams({ q: newQuery });
-    debouncedSearch(newQuery);
+    // Update URL parameters while preserving the category if it exists
+    const category = searchParams.get('category');
+    const newParams: { q?: string; category?: string } = { q: newQuery };
+    if (category) {
+      newParams.category = category;
+    }
+    setSearchParams(newParams);
   };
 
   const handleListingClick = (listing: Listing) => {
@@ -245,7 +278,9 @@ const Search = () => {
           sx={{ 
             p: 3, 
             mb: 4, 
-            background: theme.palette.background.default 
+            background: theme.palette.background.default,
+            borderRadius: 2,
+            border: `1px solid ${theme.palette.divider}`
           }}
         >
           <Typography 
@@ -254,7 +289,8 @@ const Search = () => {
             gutterBottom
             sx={{ 
               fontWeight: 600,
-              color: theme.palette.primary.main 
+              color: theme.palette.primary.main,
+              mb: 3
             }}
           >
             Search Results
@@ -265,6 +301,36 @@ const Search = () => {
               value={searchQuery}
               onChange={handleSearch}
               placeholder="Search listings..."
+              sx={{
+                '& .MuiInputBase-root': {
+                  backgroundColor: '#ffffff',
+                  borderRadius: 2,
+                  border: `1px solid ${theme.palette.divider}`,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    border: `1px solid ${theme.palette.primary.main}`,
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                  },
+                  '&.Mui-focused': {
+                    border: `2px solid ${theme.palette.primary.main}`,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  }
+                },
+                '& .MuiInputBase-input': {
+                  padding: '16px',
+                  fontSize: '1.1rem',
+                  '&::placeholder': {
+                    color: theme.palette.text.secondary,
+                    opacity: 0.8
+                  }
+                },
+                '& .MuiInputAdornment-root .MuiSvgIcon-root': {
+                  fontSize: '1.5rem',
+                  color: theme.palette.primary.main,
+                  marginLeft: '8px'
+                }
+              }}
             />
           </Box>
 
@@ -274,7 +340,18 @@ const Search = () => {
             flexDirection: isMobile ? 'column' : 'row',
             alignItems: isMobile ? 'stretch' : 'center'
           }}>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
+            <FormControl 
+              size="small" 
+              sx={{ 
+                minWidth: 120,
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: theme.palette.background.paper,
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: theme.palette.primary.main,
+                  }
+                }
+              }}
+            >
               <InputLabel>Category</InputLabel>
               <Select
                 value={categoryFilter}
@@ -290,7 +367,18 @@ const Search = () => {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 120 }}>
+            <FormControl 
+              size="small" 
+              sx={{ 
+                minWidth: 120,
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: theme.palette.background.paper,
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: theme.palette.primary.main,
+                  }
+                }
+              }}
+            >
               <InputLabel>Sort By</InputLabel>
               <Select
                 value={sortBy}

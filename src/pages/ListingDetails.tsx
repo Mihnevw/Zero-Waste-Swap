@@ -30,8 +30,6 @@ import {
   LocationOn as LocationIcon,
   Category as CategoryIcon,
   Share as ShareIcon,
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
   ArrowBack as ArrowBackIcon,
   ZoomIn as ZoomInIcon,
   Email as EmailIcon,
@@ -45,7 +43,6 @@ import {
 } from '@mui/icons-material';
 import Footer from '../components/Footer';
 import { useAuth } from '../hooks/useAuth';
-import { useFavorites } from '../hooks/useFavorites';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -55,7 +52,6 @@ const ListingDetails: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useAuth();
-  const { toggleFavorite, isFavorite } = useFavorites();
   
   const [imageDialogOpen, setImageDialogOpen] = React.useState(false);
   const [contactDialogOpen, setContactDialogOpen] = React.useState(false);
@@ -84,16 +80,6 @@ const ListingDetails: React.FC = () => {
       </Container>
     );
   }
-
-  const handleFavoriteClick = async () => {
-    try {
-      await toggleFavorite(listing.id);
-      setSnackbarMessage(isFavorite(listing.id) ? 'Removed from favorites' : 'Added to favorites');
-      setSnackbarOpen(true);
-    } catch (err) {
-      setError('Failed to update favorites');
-    }
-  };
 
   const handleShareClick = (event: React.MouseEvent<HTMLElement>) => {
     setShareAnchorEl(event.currentTarget);
@@ -189,13 +175,6 @@ const ListingDetails: React.FC = () => {
             Go Back
           </Button>
           <Box>
-            <IconButton
-              onClick={handleFavoriteClick}
-              color="primary"
-              aria-label={isFavorite(listing.id) ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              {isFavorite(listing.id) ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-            </IconButton>
             <IconButton
               onClick={handleShareClick}
               color="primary"
@@ -409,6 +388,7 @@ const ListingDetails: React.FC = () => {
           </DialogActions>
         </Dialog>
 
+        {/* Share Menu */}
         <Menu
           anchorEl={shareAnchorEl}
           open={Boolean(shareAnchorEl)}
@@ -460,4 +440,4 @@ const ListingDetails: React.FC = () => {
   );
 };
 
-export default ListingDetails; 
+export default ListingDetails;

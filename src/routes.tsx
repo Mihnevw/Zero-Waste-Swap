@@ -13,6 +13,8 @@ import About from './pages/About';
 import Settings from './pages/Settings';
 import Contact from './pages/Contact';
 import Favorites from './pages/Favorites';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 
 const AppRoutes = () => {
   return (
@@ -31,6 +33,8 @@ const AppRoutes = () => {
       <Route path="/my-listings" element={<MyListings />} />
       <Route path="/about" element={<About />} />
       <Route path="/favorites" element={<Favorites />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
     </Routes>
   );
 };

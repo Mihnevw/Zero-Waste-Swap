@@ -400,6 +400,7 @@ const Home: React.FC = () => {
               onChange={setSearchQuery}
               onSearch={handleSearch}
               placeholder="Search for items..."
+              variant="home"
             />
           </Box>
         </Box>

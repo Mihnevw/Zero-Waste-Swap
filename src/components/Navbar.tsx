@@ -37,6 +37,7 @@ const Navbar = () => {
     { title: 'Browse', path: '/search' },
     { title: 'How It Works', path: '/how-it-works' },
     { title: 'About Us', path: '/about' },
+    { title: 'Contact', path: '/contact' },
   ];
 
   const userMenuItems = user ? [
@@ -72,36 +73,29 @@ const Navbar = () => {
     } else if (path) {
       navigate(path);
     }
-    handleCloseUserMenu();
     handleCloseNavMenu();
+    handleCloseUserMenu();
   };
 
   return (
-    <AppBar position="sticky" sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>
-      <Container maxWidth={false}>
+    <AppBar position="sticky" color="default" elevation={1}>
+      <Container maxWidth="lg">
         <Toolbar disableGutters>
-          {/* Logo - Desktop */}
-          <RecyclingIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, color: 'primary.main' }} />
-          <Typography
-            variant="h6"
-            noWrap
-            component={Link}
-            to="/"
-            sx={{
-              mr: 2,
-              display: { xs: 'none', md: 'flex' },
-              fontWeight: 700,
-              color: 'inherit',
-              textDecoration: 'none',
-            }}
-          >
-            Zero-Waste Swap
-          </Typography>
+          {/* Logo - visible on desktop */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 2 }}>
+            <IconButton
+              onClick={() => navigate('/')}
+              sx={{ p: 0, color: 'primary.main' }}
+            >
+              <RecyclingIcon sx={{ fontSize: 32 }} />
+            </IconButton>
+          </Box>
 
-          {/* Mobile Menu */}
+          {/* Mobile menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
+              aria-label="menu"
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleOpenNavMenu}
@@ -128,39 +122,40 @@ const Navbar = () => {
               }}
             >
               {pages.map((page) => (
-                <MenuItem key={page.title} onClick={() => handleMenuItemClick(page.path)}>
+                <MenuItem
+                  key={page.title}
+                  onClick={() => handleMenuItemClick(page.path)}
+                >
                   <Typography textAlign="center">{page.title}</Typography>
                 </MenuItem>
               ))}
             </Menu>
           </Box>
 
-          {/* Logo - Mobile */}
-          <RecyclingIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1, color: 'primary.main' }} />
-          <Typography
-            variant="h6"
-            noWrap
-            component={Link}
-            to="/"
-            sx={{
-              mr: 2,
-              display: { xs: 'flex', md: 'none' },
-              flexGrow: 1,
-              fontWeight: 700,
-              color: 'inherit',
-              textDecoration: 'none',
-            }}
-          >
-            Zero-Waste
-          </Typography>
+          {/* Logo - visible on mobile */}
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, flexGrow: 1 }}>
+            <IconButton
+              onClick={() => navigate('/')}
+              sx={{ p: 0, color: 'primary.main' }}
+            >
+              <RecyclingIcon sx={{ fontSize: 32 }} />
+            </IconButton>
+          </Box>
 
-          {/* Desktop Menu */}
+          {/* Desktop menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
             {pages.map((page) => (
               <Button
                 key={page.title}
                 onClick={() => handleMenuItemClick(page.path)}
-                sx={{ my: 2, color: 'text.primary', display: 'block' }}
+                sx={{
+                  my: 2,
+                  color: 'text.primary',
+                  display: 'block',
+                  '&:hover': {
+                    color: 'primary.main',
+                  },
+                }}
               >
                 {page.title}
               </Button>
@@ -181,13 +176,17 @@ const Navbar = () => {
           )}
 
           {/* User Menu */}
-          <Box sx={{ flexGrow: 0 }}>
-            <Tooltip title="Open settings">
+          <Box sx={{ flexShrink: 0 }}>
+            <Tooltip title={user ? 'Account settings' : 'Sign in'}>
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                 <Avatar
                   alt={user?.displayName || 'User'}
                   src={user?.photoURL || undefined}
-                  sx={{ bgcolor: user ? 'primary.main' : 'grey.400' }}
+                  sx={{
+                    bgcolor: user ? 'primary.main' : 'grey.400',
+                    width: 40,
+                    height: 40,
+                  }}
                 >
                   {user?.displayName?.[0] || 'U'}
                 </Avatar>
