@@ -34,3 +34,15 @@ export const deskLampImage = 'https://i5.walmartimages.com/seo/Home-Decorative-M
 export const laptopImage = 'https://cdncloudcart.com/402/products/images/148284/laptop-apple-macbook-pro-16a-m3-pro-512gb-space-black-mrw13--16-20--18--512gb-ssd--apple-m3-pro-12-core--apple-m3-pro-18-core-gpu-6542458122175_800x800.png?1698842017';
 
 export const nikeShoesImage = 'https://lotus-sport.bg/image/cache/catalog/212/NIKE/3/CD4373-004-mazhki-maratonki-nike-react-vision-black1-min-850x850.jpg';
+
+export const clothesImage = 'https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Y2xvdGhlc3xlbnwwfHwwfHx8MA%3D%3D';
+
+export const electronicsImage = 'https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
+
+export const booksImage = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80';
+
+export const furnitureImage = 'https://st4.depositphotos.com/1023934/37752/i/450/depositphotos_377527168-stock-photo-interior-design-modern-living-room.jpg';
+
+export const toysImage = 'https://t3.ftcdn.net/jpg/00/74/44/28/360_F_74442850_C0PsTWPFlOfwcPA3AybYefXDBmnWVsWX.jpg';
+
+export const sportsImage = 'https://t4.ftcdn.net/jpg/00/04/43/79/360_F_4437974_DbE4NRiaoRtUeivMyfPoXZFNdCnYmjPq.jpg';
