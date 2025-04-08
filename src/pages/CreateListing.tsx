@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -11,368 +11,383 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  IconButton,
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AnimatedPage from '../components/AnimatedPage';
 
 const categories = [
-  'Clothing',
-  'Electronics',
-  'Books',
-  'Furniture',
-  'Sports Equipment',
-  'Other',
+  'Дрехи',
+  'Електроника',
+  'Книги',
+  'Мебели',
+  'Спортни стоки',
+  'Други',
 ];
 
-const conditions = ['new', 'like-new', 'good', 'fair', 'poor'] as const;
+const conditions = ['ново', 'като ново', 'добро', 'задоволително', 'лошо'] as const;
 
-const CreateListing = () => {
+const CreateListing: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
-    condition: '',
+    condition: 'добро',
     images: [] as File[],
+    imagePreviews: [] as string[],
     location: {
-      latitude: 51.505,
-      longitude: -0.09,
+      latitude: 0,
+      longitude: 0,
       address: ''
     }
   });
 
   useEffect(() => {
-    console.log('Auth state:', { user, authLoading });
     if (!authLoading && !user) {
-      console.log('User not authenticated, redirecting to login');
       navigate('/login');
     }
-  }, [user, authLoading, navigate]);
+  }, [authLoading, user, navigate]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    console.log(`Form field changed: ${name} = ${value}`);
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const validateForm = () => {
+    if (!formData.title.trim()) {
+      setError('Заглавието е задължително');
+      return false;
+    }
+    if (!formData.description.trim()) {
+      setError('Описанието е задължително');
+      return false;
+    }
+    if (!formData.category) {
+      setError('Категорията е задължителна');
+      return false;
+    }
+    if (!formData.condition) {
+      setError('Състоянието е задължително');
+      return false;
+    }
+    if (formData.images.length === 0) {
+      setError('Необходима е поне една снимка');
+      return false;
+    }
+    return true;
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      console.log(`Selected ${e.target.files.length} images`);
+      const newImages = Array.from(e.target.files);
+      const newPreviews = newImages.map(file => URL.createObjectURL(file));
+      
       setFormData(prev => ({
         ...prev,
-        images: [...Array.from(e.target.files || [])]
+        images: [...prev.images, ...newImages],
+        imagePreviews: [...prev.imagePreviews, ...newPreviews]
       }));
     }
   };
 
+  const handleRemoveImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+      imagePreviews: prev.imagePreviews.filter((_, i) => i !== index)
+    }));
+  };
+
   const uploadImages = async (files: File[]): Promise<string[]> => {
-    console.log('Starting image upload process');
+    if (!user) return [];
+    
     try {
-      if (!user) {
-        console.error('No authenticated user found');
-        throw new Error('You must be logged in to upload images');
-      }
-
-      const uploadPromises = files.map(async (file: File) => {
-        try {
-          // Basic validation
-          if (!file.type.startsWith('image/')) {
-            throw new Error(`Invalid file type: ${file.type}`);
-          }
-
-          // Create a unique filename with proper formatting
-          const timestamp = Date.now();
-          const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-          const filename = `${timestamp}-${safeFileName}`;
-          
-          // Ensure the path is correctly structured for the storage bucket
-          const storagePath = `listings/${user.uid}/${filename}`;
-          console.log('Uploading to path:', storagePath);
-
-          // Create storage reference with the correct path
-          const storageRef = ref(storage, storagePath);
-          console.log('Storage reference created:', storageRef);
-
-          try {
-            // Upload file directly without metadata to minimize CORS issues
-            console.log('Starting upload...');
-            const snapshot = await uploadBytes(storageRef, file);
-            console.log('Upload successful, snapshot:', snapshot.metadata);
-
-            // Get download URL using the Firebase SDK
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            console.log('Download URL obtained:', downloadURL);
-
-            return downloadURL;
-          } catch (uploadError: any) {
-            console.error('Upload error details:', {
-              code: uploadError.code,
-              message: uploadError.message,
-              serverResponse: uploadError.serverResponse,
-              ref: uploadError.ref
-            });
-            
-            if (uploadError.code === 'storage/unauthorized') {
-              throw new Error('Unauthorized: Please check your authentication status');
-            } else if (uploadError.code === 'storage/canceled') {
-              throw new Error('Upload was canceled');
-            } else if (uploadError.code === 'storage/unknown') {
-              throw new Error('An unknown error occurred during upload');
-            }
-            
-            throw new Error(`Upload failed: ${uploadError.message}`);
-          }
-        } catch (error: any) {
-          console.error('Error processing file:', {
-            fileName: file.name,
-            error: error.message
-          });
-          throw error;
-        }
+      setUploadingImages(true);
+      const uploadPromises = files.map(async (file) => {
+        const timestamp = Date.now();
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${timestamp}-${safeFileName}`;
+        const storagePath = `listings/${user.uid}/${filename}`;
+        const storageRef = ref(storage, storagePath);
+        
+        const snapshot = await uploadBytes(storageRef, file);
+        return await getDownloadURL(snapshot.ref);
       });
-
-      console.log('Processing all uploads...');
-      const results = await Promise.all(uploadPromises);
-      const validUrls = results.filter((url): url is string => typeof url === 'string' && url.length > 0);
-      console.log('All uploads completed successfully:', validUrls);
-      return validUrls;
-    } catch (error: any) {
-      console.error('Fatal upload error:', error);
-      throw new Error(`Failed to upload images: ${error.message}`);
+      
+      return await Promise.all(uploadPromises);
+    } catch (err) {
+      throw new Error('Грешка при качване на снимките');
+    } finally {
+      setUploadingImages(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submission started with data:', {
-      title: formData.title,
-      description: formData.description,
-      category: formData.category,
-      condition: formData.condition,
-      imageCount: formData.images.length,
-      location: formData.location
-    });
+    setError('');
     
+    if (!validateForm()) {
+      return;
+    }
+
     if (!user) {
-      console.error('No authenticated user found');
-      setError('You must be logged in to create a listing');
+      setError('Трябва да сте влезли в системата, за да създадете обява');
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
-
-      // Validate form data
-      console.log('Validating form data...');
-      if (!formData.title.trim()) {
-        throw new Error('Title is required');
-      }
-      if (!formData.description.trim()) {
-        throw new Error('Description is required');
-      }
-      if (!formData.category) {
-        throw new Error('Category is required');
-      }
-      if (!formData.images.length) {
-        throw new Error('At least one image is required');
-      }
-      console.log('Form validation passed');
 
       // Upload images first
-      console.log('Starting image upload process...');
       const imageUrls = await uploadImages(formData.images);
-      console.log('Image upload completed, URLs:', imageUrls);
 
       if (!imageUrls.length) {
-        throw new Error('Failed to upload images');
+        throw new Error('Грешка при качване на снимките');
       }
 
-      // Create listing with image URLs
-      console.log('Preparing listing data...');
+      // Create listing document
       const listingData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
         condition: formData.condition,
         images: imageUrls,
-        userEmail: user.email,
-        userId: user.uid,
-        userName: user.displayName || 'Anonymous',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
         location: formData.location,
-        status: 'available' as const
+        userEmail: user.email,
+        userName: user.displayName || 'Анонимен потребител',
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+        status: 'налично'
       };
-      console.log('Listing data prepared:', listingData);
 
-      // Use a try-catch block specifically for the Firestore operation
-      try {
-        console.log('Creating Firestore document...');
-        const listingsRef = collection(db, 'listings');
-        console.log('Collection reference created:', listingsRef);
-        
-        const docRef = await addDoc(listingsRef, listingData);
-        console.log('Document reference created:', docRef);
-        
-        if (!docRef.id) {
-          throw new Error('Failed to create listing');
-        }
-
-        console.log('Listing created successfully with ID:', docRef.id);
-        setSuccess(true);
-        
-        // Navigate to home after showing success message
-        setTimeout(() => {
-          console.log('Navigating to home page...');
-          navigate('/');
-        }, 2000);
-      } catch (firestoreError) {
-        console.error('Firestore error:', firestoreError);
-        throw new Error('Failed to save listing to database. Please try again.');
-      }
-    } catch (err: any) {
-      console.error('Error in handleSubmit:', err);
-      setError(err.message || 'Failed to create listing. Please try again.');
-      setSuccess(false);
+      const docRef = await addDoc(collection(db, 'listings'), listingData);
+      setSuccess(true);
+      
+      // Wait for the listing to be fully saved and indexed
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Navigate to the listing details page
+      navigate(`/listing/${docRef.id}`);
+    } catch (error: any) {
+      setError(error.message || 'Грешка при създаване на обявата. Моля, опитайте отново.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (authLoading || !user) {
-    console.log('Component not rendered: authLoading or no user');
-    return null;
+  if (authLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Create New Listing
-        </Typography>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        <Box component="form" onSubmit={handleSubmit}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                required
-                fullWidth
-                label="Title"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                required
-                fullWidth
-                multiline
-                rows={4}
-                label="Description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                fullWidth
-                select
-                label="Category"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                disabled={loading}
-              >
-                {categories.map((category) => (
-                  <MenuItem key={category} value={category}>
-                    {category}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                fullWidth
-                select
-                label="Condition"
-                name="condition"
-                value={formData.condition}
-                onChange={handleChange}
-                disabled={loading}
-              >
-                {conditions.map((condition) => (
-                  <MenuItem key={condition} value={condition}>
-                    {condition.charAt(0).toUpperCase() + condition.slice(1)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12}>
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                startIcon={<CloudUploadIcon />}
-                disabled={loading}
-              >
-                Upload Images
-                <input
-                  type="file"
-                  hidden
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                />
-              </Button>
-              {formData.images.length > 0 && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {formData.images.length} image(s) selected
-                </Typography>
-              )}
-            </Grid>
-            <Grid item xs={12}>
-              <Button
-                type="submit"
-                variant="contained"
-                fullWidth
-                size="large"
-                disabled={loading}
-                sx={{ mt: 2 }}
-              >
-                {loading ? <CircularProgress size={24} /> : 'Create Listing'}
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
+    <AnimatedPage animation="fade">
+      <Box sx={{ pt: 8 }}>
+        <Container maxWidth="md">
+          <AnimatedPage animation="slide" delay={0.2}>
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                Създай нова обява
+              </Typography>
+              <Typography variant="body1" color="text.secondary" paragraph>
+                Споделете предмети, които вече не използвате, и помогнете на други хора да ги намерят.
+              </Typography>
+            </Box>
+          </AnimatedPage>
+
+          <AnimatedPage animation="scale" delay={0.4}>
+            <Paper sx={{ p: 4 }}>
+              <form onSubmit={handleSubmit}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Заглавие"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                      error={!!error && !formData.title.trim()}
+                      helperText={!!error && !formData.title.trim() ? 'Заглавието е задължително' : ''}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Описание"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      multiline
+                      rows={4}
+                      required
+                      error={!!error && !formData.description.trim()}
+                      helperText={!!error && !formData.description.trim() ? 'Описанието е задължително' : ''}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required error={!!error && !formData.category}>
+                      <InputLabel>Категория</InputLabel>
+                      <Select
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        label="Категория"
+                      >
+                        {categories.map((category) => (
+                          <MenuItem key={category} value={category}>
+                            {category}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {error && !formData.category && (
+                        <FormHelperText>{error}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required error={!!error && !formData.condition}>
+                      <InputLabel>Състояние</InputLabel>
+                      <Select
+                        value={formData.condition}
+                        onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                        label="Състояние"
+                      >
+                        {conditions.map((condition) => (
+                          <MenuItem key={condition} value={condition}>
+                            {condition}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {error && !formData.condition && (
+                        <FormHelperText>{error}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <AnimatedPage animation="slide" delay={0.6}>
+                      <Box sx={{ mb: 2 }}>
+                        <Button
+                          component="label"
+                          variant="outlined"
+                          startIcon={<CloudUploadIcon />}
+                          fullWidth
+                        >
+                          Качи снимки
+                          <input
+                            type="file"
+                            hidden
+                            multiple
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                          />
+                        </Button>
+                      </Box>
+                      {formData.imagePreviews.length > 0 && (
+                        <Grid container spacing={2}>
+                          {formData.imagePreviews.map((preview, index) => (
+                            <Grid item xs={6} sm={4} md={3} key={index}>
+                              <Box sx={{ position: 'relative' }}>
+                                <img
+                                  src={preview}
+                                  alt={`Preview ${index + 1}`}
+                                  style={{
+                                    width: '100%',
+                                    height: '150px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                                <IconButton
+                                  size="small"
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(0, 0, 0, 0.7)'
+                                    }
+                                  }}
+                                  onClick={() => handleRemoveImage(index)}
+                                >
+                                  <DeleteIcon sx={{ color: 'white' }} />
+                                </IconButton>
+                              </Box>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      )}
+                      {!!error && !formData.images.length && (
+                        <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                          Необходима е поне една снимка
+                        </Typography>
+                      )}
+                    </AnimatedPage>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <AnimatedPage animation="slide" delay={0.8}>
+                      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                        <Button
+                          variant="outlined"
+                          onClick={() => navigate('/')}
+                        >
+                          Отказ
+                        </Button>
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          disabled={loading || uploadingImages}
+                        >
+                          {loading || uploadingImages ? (
+                            <CircularProgress size={24} />
+                          ) : (
+                            'Публикувай'
+                          )}
+                        </Button>
+                      </Box>
+                    </AnimatedPage>
+                  </Grid>
+                </Grid>
+              </form>
+            </Paper>
+          </AnimatedPage>
+        </Container>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <Snackbar
         open={success}
         autoHideDuration={2000}
-        message="Listing created successfully!"
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
-    </Container>
+        onClose={() => setSuccess(false)}
+      >
+        <Alert severity="success">
+          Обявата беше създадена успешно!
+        </Alert>
+      </Snackbar>
+    </AnimatedPage>
   );
 };
 

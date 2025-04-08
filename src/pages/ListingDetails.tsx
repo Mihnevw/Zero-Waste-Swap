@@ -1,5 +1,5 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -25,6 +25,9 @@ import {
   Alert,
   Menu,
   MenuItem,
+  Card,
+  CardMedia,
+  CardContent,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
@@ -40,18 +43,28 @@ import {
   WhatsApp as WhatsAppIcon,
   Telegram as TelegramIcon,
   Facebook as FacebookIcon,
+  AccessTime as TimeIcon,
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
 } from '@mui/icons-material';
 import Footer from '../components/Footer';
 import { useAuth } from '../hooks/useAuth';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
+import { db, storage } from '../config/firebase';
+import AnimatedPage from '../components/AnimatedPage';
+import { formatDistanceToNow } from 'date-fns';
+import { useFavorites } from '../hooks/useFavorites';
+import { Listing } from '../types/listing';
 
 const ListingDetails: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useAuth();
+  const { favorites, toggleFavorite, isFavorite: checkIsFavorite } = useFavorites();
   
   const [imageDialogOpen, setImageDialogOpen] = React.useState(false);
   const [contactDialogOpen, setContactDialogOpen] = React.useState(false);
@@ -59,27 +72,47 @@ const ListingDetails: React.FC = () => {
   const [shareAnchorEl, setShareAnchorEl] = React.useState<null | HTMLElement>(null);
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [listing, setListing] = React.useState<Listing | null>(null);
+  const [isFavorite, setIsFavorite] = React.useState(false);
 
-  const listing = location.state?.listing;
+  useEffect(() => {
+    const fetchListing = async () => {
+      if (!id) {
+        setError('ID на обявата не е намерен');
+        setLoading(false);
+        return;
+      }
 
-  if (!listing) {
-    return (
-      <Container>
-        <Typography variant="h5" sx={{ mt: 4 }}>
-          Listing not found
-        </Typography>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2 }}
-        >
-          Go Back
-        </Button>
-      </Container>
-    );
-  }
+      try {
+        const listingDoc = await getDoc(doc(db, 'listings', id));
+        if (!listingDoc.exists()) {
+          setError('Обявата не е намерена');
+          setLoading(false);
+          return;
+        }
+        setListing({ id: listingDoc.id, ...listingDoc.data() } as Listing);
+        if (listingDoc.id) {
+          setIsFavorite(checkIsFavorite(listingDoc.id));
+        }
+      } catch (err) {
+        setError('Грешка при зареждане на обявата');
+        console.error('Error fetching listing:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Try to get listing from location state first
+    const locationListing = location.state?.listing;
+    if (locationListing) {
+      setListing(locationListing);
+      setLoading(false);
+    } else {
+      fetchListing();
+    }
+  }, [id, location.state, favorites, checkIsFavorite]);
 
   const handleShareClick = (event: React.MouseEvent<HTMLElement>) => {
     setShareAnchorEl(event.currentTarget);
@@ -89,29 +122,19 @@ const ListingDetails: React.FC = () => {
     setShareAnchorEl(null);
   };
 
-  const handleShare = (platform: string) => {
-    const listingUrl = `${window.location.origin}/listing/${listing.id}`;
-    const title = encodeURIComponent(listing.title);
-    const text = encodeURIComponent(`Check out this listing: ${listing.title}`);
+  const handleShare = async () => {
+    if (!listing) return;
     
-    let shareUrl = '';
-    switch (platform) {
-      case 'whatsapp':
-        shareUrl = `https://wa.me/?text=${text}%20${listingUrl}`;
-        break;
-      case 'telegram':
-        shareUrl = `https://t.me/share/url?url=${listingUrl}&text=${text}`;
-        break;
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${listingUrl}`;
-        break;
-      case 'email':
-        shareUrl = `mailto:?subject=${title}&body=${text}%20${listingUrl}`;
-        break;
+    try {
+      await navigator.share({
+        title: listing.title,
+        text: listing.description,
+        url: window.location.href,
+      });
+    } catch (err) {
+      // Share API not supported or user cancelled
+      console.log('Share failed:', err);
     }
-    
-    window.open(shareUrl, '_blank');
-    handleShareClose();
   };
 
   const handleContactClick = () => {
@@ -130,313 +153,204 @@ const ListingDetails: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDelete = async () => {
+    if (!listing) return;
+    
     try {
       setLoading(true);
-      setError(null);
-      await deleteDoc(doc(db, 'listings', listing.id));
-      navigate('/profile');
+      const listingRef = doc(db, 'listings', listing.id);
+      await deleteDoc(listingRef);
+      navigate('/my-listings');
     } catch (err) {
-      console.error('Error deleting listing:', err);
-      setError('Failed to delete listing. Please try again.');
+      setError('Грешка при изтриване на обявата');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const isOwner = user?.uid === listing.userId;
-
-  const formatLocation = (location: any) => {
-    if (!location) return 'Location not specified';
-    if (typeof location === 'string') return location;
-    return location.address || 'Location not specified';
+  const handleFavorite = async () => {
+    if (!id || !listing) return;
+    
+    try {
+      await toggleFavorite(id);
+      setIsFavorite(!isFavorite);
+    } catch (err) {
+      setError('Грешка при управление на любими обяви');
+    }
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
-      </Box>
+      <Container>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <CircularProgress />
+        </Box>
+      </Container>
     );
   }
 
-  return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column',
-      minHeight: '100vh'
-    }}>
-      <Container maxWidth="lg" sx={{ flex: 1, py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(-1)}
-          >
-            Go Back
-          </Button>
-          <Box>
-            <IconButton
-              onClick={handleShareClick}
-              color="primary"
-              aria-label="Share listing"
-            >
-              <ShareIcon />
-            </IconButton>
-            {isOwner && (
-              <>
-                <Button
-                  startIcon={<EditIcon />}
-                  onClick={handleEditClick}
-                  sx={{ ml: 1 }}
-                >
-                  Edit
-                </Button>
-                <Button
-                  startIcon={<DeleteIcon />}
-                  onClick={handleDeleteClick}
-                  color="error"
-                  sx={{ ml: 1 }}
-                >
-                  Delete
-                </Button>
-              </>
-            )}
-          </Box>
-        </Box>
-
-        {error && (
-          <Typography color="error" sx={{ mb: 2 }}>
+  if (error) {
+    return (
+      <Container>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <Alert severity="error" sx={{ width: '100%' }}>
             {error}
-          </Typography>
-        )}
+          </Alert>
+        </Box>
+      </Container>
+    );
+  }
 
-        <Grid container spacing={4}>
-          {/* Left Column - Image */}
-          <Grid item xs={12} md={6}>
-            <Paper
-              sx={{
-                position: 'relative',
-                cursor: 'zoom-in',
-                '&:hover .zoom-icon': {
-                  opacity: 1,
-                },
-              }}
-              onClick={() => setImageDialogOpen(true)}
-            >
-              <Box
-                component="img"
-                src={listing.images?.[0] || '/placeholder-image.jpg'}
-                alt={listing.title}
-                sx={{
-                  width: '100%',
-                  height: 'auto',
-                  maxHeight: '500px',
-                  objectFit: 'contain',
-                  bgcolor: 'background.paper',
-                }}
-              />
-              <Box
-                className="zoom-icon"
-                sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  opacity: 0,
-                  transition: 'opacity 0.2s',
-                  bgcolor: 'rgba(0, 0, 0, 0.5)',
-                  borderRadius: '50%',
-                  p: 1,
-                }}
-              >
-                <ZoomInIcon sx={{ color: 'white', fontSize: 40 }} />
-              </Box>
-            </Paper>
-          </Grid>
+  if (!listing) {
+    return (
+      <Container>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <Alert severity="error" sx={{ width: '100%' }}>
+            Обявата не е намерена
+          </Alert>
+        </Box>
+      </Container>
+    );
+  }
 
-          {/* Right Column - Details */}
-          <Grid item xs={12} md={6}>
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Typography variant="h4" component="h1" gutterBottom>
-                  {listing.title}
-                </Typography>
-              </Box>
+  const isOwner = user?.uid === listing?.userId;
 
-              <Box sx={{ mb: 3 }}>
-                <Chip
-                  icon={<CategoryIcon />}
-                  label={listing.category || 'Uncategorized'}
-                  sx={{ mr: 1 }}
-                />
-                <Chip
-                  icon={<LocationIcon />}
-                  label={formatLocation(listing.location)}
-                />
-              </Box>
+  const formatLocation = (location: any) => {
+    if (!location) return 'Местоположението не е посочено';
+    if (typeof location === 'string') return location;
+    return location.address || 'Местоположението не е посочено';
+  };
 
-              <Typography variant="body1" paragraph>
-                {listing.description}
-              </Typography>
+  return (
+    <AnimatedPage animation="fade">
+      <Box sx={{ py: 4 }}>
+        <Container>
+          <AnimatedPage animation="slide">
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Typography variant="h4" component="h1">
+                    {listing.title}
+                  </Typography>
+                  {user?.uid === listing.userId && (
+                    <Box>
+                      <IconButton
+                        onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                        color="primary"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => setDeleteDialogOpen(true)}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  )}
+                </Box>
+              </Grid>
 
-              <Box sx={{ mt: 4 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  onClick={handleContactClick}
-                  fullWidth
-                >
-                  Contact Seller
-                </Button>
-              </Box>
-            </Box>
-          </Grid>
-        </Grid>
+              <Grid item xs={12} md={8}>
+                <Paper sx={{ p: 3 }}>
+                  <Box sx={{ mb: 3 }}>
+                    <Grid container spacing={2}>
+                      {listing.images?.map((image: string, index: number) => (
+                        <Grid item xs={12} sm={6} key={index}>
+                          <img
+                            src={image}
+                            alt={`${listing.title} - Снимка ${index + 1}`}
+                            style={{
+                              width: '100%',
+                              height: '300px',
+                              objectFit: 'cover',
+                              borderRadius: '8px'
+                            }}
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
 
-        {/* Contact Dialog */}
-        <Dialog open={contactDialogOpen} onClose={handleCloseContactDialog}>
-          <DialogTitle>Contact Information</DialogTitle>
+                  <Typography variant="body1" paragraph>
+                    {listing.description}
+                  </Typography>
+
+                  <Divider sx={{ my: 3 }} />
+
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                    {listing.category && <Chip label={listing.category} color="primary" />}
+                    {listing.condition && <Chip label={listing.condition} color="secondary" />}
+                    {listing.status && (
+                      <Chip 
+                        label={listing.status} 
+                        color={listing.status === 'налично' ? 'success' : 'default'} 
+                      />
+                    )}
+                  </Box>
+
+                  {listing.location && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <LocationIcon color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {formatLocation(listing.location)}
+                      </Typography>
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <AnimatedPage animation="slide" delay={0.4}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Информация за продавача
+                    </Typography>
+                    <Typography variant="body1" paragraph>
+                      {listing.userName || 'Неизвестен потребител'}
+                    </Typography>
+                    {listing.userEmail && (
+                      <>
+                        <Typography variant="body2" color="text.secondary" paragraph>
+                          {listing.userEmail}
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          fullWidth
+                          onClick={() => window.location.href = `mailto:${listing.userEmail}`}
+                        >
+                          Свържи се
+                        </Button>
+                      </>
+                    )}
+                  </Paper>
+                </AnimatedPage>
+              </Grid>
+            </Grid>
+          </AnimatedPage>
+        </Container>
+      </Box>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <AnimatedPage animation="fade">
+          <DialogTitle>Потвърди изтриване</DialogTitle>
           <DialogContent>
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <PersonIcon />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Seller"
-                  secondary={listing.userName || 'Anonymous'}
-                />
-              </ListItem>
-              {listing.userEmail && (
-                <ListItem>
-                  <ListItemIcon>
-                    <EmailIcon />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Email"
-                    secondary={listing.userEmail}
-                  />
-                </ListItem>
-              )}
-              <ListItem>
-                <ListItemIcon>
-                  <LocationIcon />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Location"
-                  secondary={formatLocation(listing.location)}
-                />
-              </ListItem>
-            </List>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Please be respectful and follow our community guidelines when contacting sellers.
-            </Typography>
+            Сигурни ли сте, че искате да изтриете тази обява? Това действие не може да бъде отменено.
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseContactDialog}>Close</Button>
-            {listing.userEmail && (
-              <Button
-                variant="contained"
-                color="primary"
-                href={`mailto:${listing.userEmail}?subject=Regarding your listing: ${listing.title}`}
-              >
-                Send Email
-              </Button>
-            )}
-          </DialogActions>
-        </Dialog>
-
-        {/* Image Dialog */}
-        <Dialog
-          open={imageDialogOpen}
-          onClose={() => setImageDialogOpen(false)}
-          maxWidth="lg"
-          fullWidth
-        >
-          <DialogContent>
-            <Box
-              component="img"
-              src={listing.images?.[0] || '/placeholder-image.jpg'}
-              alt={listing.title}
-              sx={{
-                width: '100%',
-                height: 'auto',
-                maxHeight: '80vh',
-                objectFit: 'contain',
-              }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setImageDialogOpen(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete Listing</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete this listing? This action cannot be undone.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-              Delete
+            <Button onClick={() => setDeleteDialogOpen(false)}>Отказ</Button>
+            <Button onClick={handleDelete} color="error" variant="contained" disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : 'Изтрий'}
             </Button>
           </DialogActions>
-        </Dialog>
-
-        {/* Share Menu */}
-        <Menu
-          anchorEl={shareAnchorEl}
-          open={Boolean(shareAnchorEl)}
-          onClose={handleShareClose}
-        >
-          <MenuItem onClick={() => handleShare('whatsapp')}>
-            <ListItemIcon>
-              <WhatsAppIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>WhatsApp</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleShare('telegram')}>
-            <ListItemIcon>
-              <TelegramIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Telegram</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleShare('facebook')}>
-            <ListItemIcon>
-              <FacebookIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Facebook</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleShare('email')}>
-            <ListItemIcon>
-              <EmailIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Email</ListItemText>
-          </MenuItem>
-        </Menu>
-
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={3000}
-          onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert 
-            onClose={() => setSnackbarOpen(false)} 
-            severity="success" 
-            sx={{ width: '100%' }}
-          >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-      </Container>
-      <Footer />
-    </Box>
+        </AnimatedPage>
+      </Dialog>
+    </AnimatedPage>
   );
 };
 

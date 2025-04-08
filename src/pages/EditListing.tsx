@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
@@ -16,40 +16,55 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  Card,
+  CardMedia,
+  CardContent,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../hooks/useAuth';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '../config/firebase';
 import { Listing } from '../types/listing';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import AnimatedPage from '../components/AnimatedPage';
+import { useFavorites } from '../hooks/useFavorites';
+import { uploadImage } from '../utils/imageUpload';
 
 const categories = [
-  'Clothing',
-  'Electronics',
-  'Books',
-  'Furniture',
-  'Sports Equipment',
-  'Other',
+  'Дрехи',
+  'Електроника',
+  'Книги',
+  'Мебели',
+  'Спортни стоки',
+  'Други',
 ];
 
-const conditions = ['new', 'like-new', 'good', 'fair', 'poor'] as const;
+const conditions = ['ново', 'като ново', 'добро', 'задоволително', 'лошо'] as const;
 
 const EditListing = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { toggleFavorite } = useFavorites();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Listing>>({
     title: '',
     description: '',
     category: '',
-    condition: 'good',
+    condition: 'добро',
     images: [],
   });
+  const [newImages, setNewImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -57,64 +72,145 @@ const EditListing = () => {
       return;
     }
 
-    const listing = location.state?.listing;
-    if (listing) {
-      setFormData({
-        title: listing.title,
-        description: listing.description,
-        category: listing.category,
-        condition: listing.condition,
-        images: listing.images,
-      });
-    } else {
-      setError('Listing data not found');
-    }
-  }, [authLoading, user, navigate, location.state]);
+    const fetchListing = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const docRef = doc(db, 'listings', id);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data() as Listing;
+          if (data.userId !== user?.uid) {
+            navigate('/');
+            return;
+          }
+          setFormData(data);
+          setImagePreviews(data.images || []);
+        } else {
+          setError('Обявата не беше намерена');
+        }
+      } catch (err) {
+        setError('Грешка при зареждане на обявата');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    fetchListing();
+  }, [authLoading, user, navigate, id]);
+
+  const validateForm = () => {
+    if (!formData.title?.trim()) {
+      setError('Заглавието е задължително');
+      return false;
+    }
+    if (!formData.description?.trim()) {
+      setError('Описанието е задължително');
+      return false;
+    }
+    if (!formData.category) {
+      setError('Категорията е задължителна');
+      return false;
+    }
+    if (!formData.condition) {
+      setError('Състоянието е задължително');
+      return false;
+    }
+    if ((!formData.images || formData.images.length === 0) && newImages.length === 0) {
+      setError('Необходима е поне една снимка');
+      return false;
+    }
+    return true;
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imageUrl = reader.result as string;
-        setFormData(prev => ({
-          ...prev,
-          images: [...(prev.images || []), imageUrl]
-        }));
-      };
-      reader.readAsDataURL(file);
+    if (event.target.files && event.target.files.length > 0) {
+      const files = Array.from(event.target.files);
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      
+      setNewImages(prev => [...prev, ...files]);
+      setImagePreviews(prev => [...prev, ...newPreviews]);
     }
   };
 
-  const handleImageDelete = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images?.filter((_, i) => i !== index),
-    }));
+  const handleRemoveImage = async (index: number, isNew: boolean) => {
+    if (isNew) {
+      setNewImages(prev => prev.filter((_, i) => i !== index));
+      setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    } else {
+      if (!formData.images) return;
+      
+      try {
+        const imageUrl = formData.images[index];
+        const imageRef = ref(storage, imageUrl);
+        await deleteObject(imageRef);
+        
+        setFormData(prev => ({
+          ...prev,
+          images: prev.images?.filter((_, i) => i !== index)
+        }));
+        setImagePreviews(prev => prev.filter((_, i) => i !== index));
+      } catch (err) {
+        setError('Грешка при изтриване на снимката');
+      }
+    }
+  };
+
+  const uploadNewImages = async (files: File[]): Promise<string[]> => {
+    if (!user) return [];
+    
+    try {
+      setUploadingImages(true);
+      const uploadPromises = files.map(async (file) => {
+        const timestamp = Date.now();
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${timestamp}-${safeFileName}`;
+        const storagePath = `listings/${user.uid}/${filename}`;
+        const storageRef = ref(storage, storagePath);
+        
+        const snapshot = await uploadBytes(storageRef, file);
+        return await getDownloadURL(snapshot.ref);
+      });
+      
+      return await Promise.all(uploadPromises);
+    } catch (err) {
+      throw new Error('Грешка при качване на снимките');
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     if (!user || !id) return;
 
     try {
       setLoading(true);
+      
+      let updatedImages = formData.images || [];
+      if (newImages.length > 0) {
+        const newImageUrls = await uploadNewImages(newImages);
+        updatedImages = [...updatedImages, ...newImageUrls];
+      }
+
       const docRef = doc(db, 'listings', id);
       await updateDoc(docRef, {
         ...formData,
+        images: updatedImages,
         updatedAt: new Date(),
       });
-      navigate('/profile');
+      
+      navigate(`/listing/${id}`);
     } catch (err) {
-      setError('Failed to update listing. Please try again.');
+      setError('Грешка при актуализиране на обявата. Моля, опитайте отново.');
     } finally {
       setLoading(false);
     }
@@ -122,238 +218,248 @@ const EditListing = () => {
 
   const handleDelete = async () => {
     if (!id) return;
+    
     try {
+      setLoading(true);
+      
+      // Delete images from storage
+      if (formData.images) {
+        const deletePromises = formData.images.map(async (imageUrl) => {
+          const imageRef = ref(storage, imageUrl);
+          try {
+            await deleteObject(imageRef);
+          } catch (err) {
+            console.error('Error deleting image:', err);
+          }
+        });
+        await Promise.all(deletePromises);
+      }
+      
+      // Delete document
       await deleteDoc(doc(db, 'listings', id));
+      await toggleFavorite(id);
       navigate('/profile');
     } catch (err) {
-      setError('Failed to delete listing. Please try again.');
+      setError('Грешка при изтриване на обявата. Моля, опитайте отново.');
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
     }
   };
 
-  if (loading || authLoading) {
+  if (loading && !formData.title) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        minHeight: 'calc(100vh - 64px)',
-        width: '100%'
-      }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (error) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        minHeight: 'calc(100vh - 64px)',
-        width: '100%'
-      }}>
-        <Alert severity="error" sx={{ maxWidth: '600px', width: '100%' }}>
-          {error}
-        </Alert>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: 'calc(100vh - 64px)',
-      width: '100%',
-      py: { xs: 2, sm: 3, md: 4 }
-    }}>
-      <Container maxWidth="lg" sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Paper sx={{ 
-          p: { xs: 2, sm: 3, md: 4 },
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            mb: 3,
-            flexWrap: 'wrap',
-            gap: 2
-          }}>
-            <Typography variant="h4" component="h1">
-              Edit Listing
-            </Typography>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              Delete Listing
-            </Button>
-          </Box>
+    <AnimatedPage animation="fade">
+      <Box sx={{ pt: 8 }}>
+        <Container maxWidth="md">
+          <AnimatedPage animation="slide" delay={0.2}>
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                Редактирай обява
+              </Typography>
+              <Typography variant="body1" color="text.secondary" paragraph>
+                Актуализирайте информацията за вашата обява.
+              </Typography>
+            </Box>
+          </AnimatedPage>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box
-            component="form" 
-            onSubmit={handleSubmit} 
-            sx={{ 
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            <Grid container spacing={3} sx={{ flex: 1 }}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  label="Description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  required
-                >
-                  {categories.map((category) => (
-                    <MenuItem key={category} value={category}>
-                      {category}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Condition"
-                  name="condition"
-                  value={formData.condition}
-                  onChange={handleChange}
-                  required
-                >
-                  {conditions.map((condition) => (
-                    <MenuItem key={condition} value={condition}>
-                      {condition.charAt(0).toUpperCase() + condition.slice(1)}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom>
-                  Images
-                </Typography>
-                <Grid container spacing={2}>
-                  {formData.images?.map((image, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                      <Box sx={{ position: 'relative', height: '200px' }}>
-                        <img
-                          src={image}
-                          alt={`Listing ${index + 1}`}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            borderRadius: '4px'
-                          }}
-                        />
-                        <IconButton
-                          sx={{
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                            '&:hover': {
-                              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                            },
-                          }}
-                          onClick={() => handleImageDelete(index)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-                <Box sx={{ mt: 2 }}>
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    startIcon={<CloudUploadIcon />}
-                  >
-                    Upload Image
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      onChange={handleImageUpload}
+          <AnimatedPage animation="scale" delay={0.4}>
+            <Paper sx={{ p: 4 }}>
+              <form onSubmit={handleSubmit}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Заглавие"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                      error={!!error && !formData.title?.trim()}
+                      helperText={!!error && !formData.title?.trim() ? 'Заглавието е задължително' : ''}
                     />
-                  </Button>
-                </Box>
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  size="large"
-                >
-                  Update Listing
-                </Button>
-              </Grid>
-            </Grid>
-          </Box>
-        </Paper>
-      </Container>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Описание"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      multiline
+                      rows={4}
+                      required
+                      error={!!error && !formData.description?.trim()}
+                      helperText={!!error && !formData.description?.trim() ? 'Описанието е задължително' : ''}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required error={!!error && !formData.category}>
+                      <InputLabel>Категория</InputLabel>
+                      <Select
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        label="Категория"
+                      >
+                        {categories.map((category) => (
+                          <MenuItem key={category} value={category}>
+                            {category}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {error && !formData.category && (
+                        <FormHelperText>{error}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required error={!!error && !formData.condition}>
+                      <InputLabel>Състояние</InputLabel>
+                      <Select
+                        value={formData.condition}
+                        onChange={(e) => setFormData({ ...formData, condition: e.target.value as typeof conditions[number] })}
+                        label="Състояние"
+                      >
+                        {conditions.map((condition) => (
+                          <MenuItem key={condition} value={condition}>
+                            {condition}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {error && !formData.condition && (
+                        <FormHelperText>{error}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <AnimatedPage animation="slide" delay={0.6}>
+                      <Box sx={{ mb: 2 }}>
+                        <Button
+                          component="label"
+                          variant="outlined"
+                          startIcon={<CloudUploadIcon />}
+                          fullWidth
+                        >
+                          Качи нови снимки
+                          <input
+                            type="file"
+                            hidden
+                            multiple
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                          />
+                        </Button>
+                      </Box>
+                      {imagePreviews.length > 0 && (
+                        <Grid container spacing={2}>
+                          {imagePreviews.map((preview, index) => (
+                            <Grid item xs={6} sm={4} md={3} key={index}>
+                              <Box sx={{ position: 'relative' }}>
+                                <img
+                                  src={preview}
+                                  alt={`Preview ${index + 1}`}
+                                  style={{
+                                    width: '100%',
+                                    height: '150px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                                <IconButton
+                                  size="small"
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(0, 0, 0, 0.7)'
+                                    }
+                                  }}
+                                  onClick={() => handleRemoveImage(index, index >= (formData.images?.length || 0))}
+                                >
+                                  <DeleteIcon sx={{ color: 'white' }} />
+                                </IconButton>
+                              </Box>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      )}
+                      {!!error && (!formData.images || formData.images.length === 0) && newImages.length === 0 && (
+                        <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                          Необходима е поне една снимка
+                        </Typography>
+                      )}
+                    </AnimatedPage>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <AnimatedPage animation="slide" delay={0.8}>
+                      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() => setDeleteDialogOpen(true)}
+                        >
+                          Изтрий обява
+                        </Button>
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                          <Button
+                            variant="outlined"
+                            onClick={() => navigate(-1)}
+                          >
+                            Отказ
+                          </Button>
+                          <Button
+                            type="submit"
+                            variant="contained"
+                            color="primary"
+                            disabled={loading || uploadingImages}
+                          >
+                            {loading || uploadingImages ? (
+                              <CircularProgress size={24} />
+                            ) : (
+                              'Запази промените'
+                            )}
+                          </Button>
+                        </Box>
+                      </Box>
+                    </AnimatedPage>
+                  </Grid>
+                </Grid>
+              </form>
+            </Paper>
+          </AnimatedPage>
+        </Container>
+      </Box>
 
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle>Delete Listing</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete this listing? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
+        <AnimatedPage animation="fade">
+          <DialogTitle>Потвърди изтриване</DialogTitle>
+          <DialogContent>
+            Сигурни ли сте, че искате да изтриете тази обява? Това действие не може да бъде отменено.
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)}>Отказ</Button>
+            <Button onClick={handleDelete} color="error" variant="contained" disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : 'Изтрий'}
+            </Button>
+          </DialogActions>
+        </AnimatedPage>
       </Dialog>
-    </Box>
+    </AnimatedPage>
   );
 };
 
