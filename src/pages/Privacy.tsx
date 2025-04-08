@@ -7,64 +7,64 @@ const Privacy: React.FC = () => {
       <Box sx={{ my: 4 }}>
         <Paper elevation={0} sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom>
-            Privacy Policy
+            Политика за поверителност
           </Typography>
           
           <Typography variant="body1" paragraph>
-            Last updated: {new Date().toLocaleDateString()}
+            Последна актуализация: {new Date().toLocaleDateString('bg-BG')}
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            1. Information We Collect
+            1. Информация, която събираме
           </Typography>
           <Typography variant="body1" paragraph>
-            We collect information you provide directly to us, including name, email address, and any other information you choose to provide when using our Zero-Waste Swap Platform.
+            Събираме информация, която вие предоставяте директно на нас, включително име, имейл адрес и всяка друга информация, която изберете да предоставите при използване на нашата платформа Zero-Waste Swap.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            2. How We Use Your Information
+            2. Как използваме вашата информация
           </Typography>
           <Typography variant="body1" paragraph>
-            We use the information we collect to:
-            • Provide and maintain our services
-            • Process your transactions
-            • Send you technical notices and support messages
-            • Communicate with you about products, services, and events
+            Използваме събраната информация, за да:
+            • Предоставяме и поддържаме нашите услуги
+            • Обработваме вашите транзакции
+            • Изпращаме ви технически известия и съобщения за поддръжка
+            • Комуникираме с вас за продукти, услуги и събития
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            3. Information Sharing
+            3. Споделяне на информация
           </Typography>
           <Typography variant="body1" paragraph>
-            We do not sell or share your personal information with third parties except as necessary to provide our services or as required by law.
+            Ние не продаваме или споделяме вашата лична информация с трети страни, освен когато е необходимо за предоставяне на нашите услуги или когато се изисква по закон.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            4. Data Security
+            4. Сигурност на данните
           </Typography>
           <Typography variant="body1" paragraph>
-            We implement appropriate security measures to protect your personal information from unauthorized access, alteration, or destruction.
+            Прилагаме подходящи мерки за сигурност, за да защитим вашата лична информация от неоторизиран достъп, промяна или унищожаване.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            5. Your Rights
+            5. Вашите права
           </Typography>
           <Typography variant="body1" paragraph>
-            You have the right to access, update, or delete your personal information. You can exercise these rights by contacting us through our platform.
+            Имате право да достъпвате, актуализирате или изтривате вашата лична информация. Можете да упражните тези права, като се свържете с нас чрез нашата платформа.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            6. Changes to This Policy
+            6. Промени в тази политика
           </Typography>
           <Typography variant="body1" paragraph>
-            We may update this privacy policy from time to time. We will notify you of any changes by posting the new policy on this page.
+            Може да актуализираме тази политика за поверителност от време на време. Ще ви уведомим за всички промени, като публикуваме новата политика на тази страница.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            7. Contact Us
+            7. Свържете се с нас
           </Typography>
           <Typography variant="body1" paragraph>
-            If you have any questions about this Privacy Policy, please contact us through our platform's contact form.
+            Ако имате въпроси относно тази Политика за поверителност, моля, свържете се с нас чрез контактната форма на нашата платформа.
           </Typography>
         </Paper>
       </Box>

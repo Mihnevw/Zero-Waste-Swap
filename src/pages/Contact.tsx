@@ -51,16 +51,16 @@ const Contact = () => {
     try {
       // Validate form
       if (!formData.name.trim()) {
-        throw new Error('Please enter your name');
+        throw new Error('Моля, въведете вашето име');
       }
       if (!formData.email.trim() || !validateEmail(formData.email)) {
-        throw new Error('Please enter a valid email address');
+        throw new Error('Моля, въведете валиден имейл адрес');
       }
       if (!formData.subject.trim()) {
-        throw new Error('Please enter a subject');
+        throw new Error('Моля, въведете тема');
       }
       if (!formData.message.trim()) {
-        throw new Error('Please enter your message');
+        throw new Error('Моля, въведете вашето съобщение');
       }
 
       const messageData = {
@@ -82,7 +82,7 @@ const Contact = () => {
 
     } catch (err) {
       console.error('Error sending message:', err);
-      setError(err instanceof Error ? err.message : 'Failed to send message. Please try again.');
+      setError(err instanceof Error ? err.message : 'Грешка при изпращане на съобщението. Моля, опитайте отново.');
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ const Contact = () => {
       <Box sx={{ my: 4 }}>
         <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
           <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ mb: 4 }}>
-            Contact Us
+            Свържете се с нас
           </Typography>
 
           {error && (
@@ -104,7 +104,7 @@ const Contact = () => {
 
           {success && (
             <Alert severity="success" sx={{ mb: 3 }}>
-              Your message has been sent successfully! Redirecting to home page...
+              Вашето съобщение беше изпратено успешно! Пренасочване към началната страница...
             </Alert>
           )}
 
@@ -114,7 +114,7 @@ const Contact = () => {
                 <TextField
                   required
                   fullWidth
-                  label="Name"
+                  label="Име"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
@@ -126,7 +126,7 @@ const Contact = () => {
                 <TextField
                   required
                   fullWidth
-                  label="Email"
+                  label="Имейл"
                   name="email"
                   type="email"
                   value={formData.email}
@@ -139,7 +139,7 @@ const Contact = () => {
                 <TextField
                   required
                   fullWidth
-                  label="Subject"
+                  label="Тема"
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
@@ -151,7 +151,7 @@ const Contact = () => {
                 <TextField
                   required
                   fullWidth
-                  label="Message"
+                  label="Съобщение"
                   name="message"
                   multiline
                   rows={4}
@@ -171,7 +171,7 @@ const Contact = () => {
                   disabled={loading || success}
                   sx={{ mt: 2 }}
                 >
-                  {loading ? <CircularProgress size={24} /> : 'Send Message'}
+                  {loading ? <CircularProgress size={24} /> : 'Изпрати съобщение'}
                 </Button>
               </Grid>
             </Grid>

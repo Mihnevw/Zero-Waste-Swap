@@ -17,18 +17,18 @@ const About: React.FC = () => {
   const values = [
     {
       icon: <RecyclingIcon />,
-      title: 'Sustainability',
-      description: 'We believe in reducing waste and promoting a circular economy through item swapping.',
+      title: 'Устойчивост',
+      description: 'Вярваме в намаляване на отпадъците и насърчаване на кръговата икономика чрез размяна на предмети.',
     },
     {
       icon: <PeopleIcon />,
-      title: 'Community',
-      description: 'Building a supportive community of eco-conscious individuals who share common values.',
+      title: 'Общност',
+      description: 'Изграждане наSUPPORTED community of eco-conscious individuals who share common values.',
     },
     {
       icon: <PublicIcon />,
-      title: 'Global Impact',
-      description: 'Making a positive environmental impact by extending the lifecycle of items.',
+      title: 'Глобален ефект',
+      description: 'Постигане на положителен екологичен ефект чрез удължаване на жизнения цикъл на предметите.',
     },
   ];
 
@@ -46,7 +46,7 @@ const About: React.FC = () => {
               fontSize: { xs: '2rem', sm: '3rem', md: '3.75rem' },
             }}
           >
-            About Zero-Waste Swap
+            За Zero-Waste Swap
           </Typography>
           <Typography
             variant="h5"
@@ -58,8 +58,7 @@ const About: React.FC = () => {
               fontSize: { xs: '1.1rem', sm: '1.25rem' },
             }}
           >
-            We're on a mission to create a more sustainable future by making it easy
-            for people to swap items instead of buying new ones.
+            Нашата мисия е да създадем по-устойчиво бъдеще, като улесним хората да разменят предмети вместо да купуват нови.
           </Typography>
         </Box>
 
@@ -116,7 +115,7 @@ const About: React.FC = () => {
             gutterBottom
             sx={{ fontWeight: 600 }}
           >
-            Our Story
+            Нашата история
           </Typography>
           <Typography
             variant="body1"
@@ -129,10 +128,10 @@ const About: React.FC = () => {
               lineHeight: 1.8,
             }}
           >
-            Zero-Waste Swap started with a simple idea: what if we could reduce waste
-            by helping people swap items they no longer need with others who could
-            use them? This platform is the result of that vision, creating a space
-            where sustainability meets community.
+            Zero-Waste Swap започна с проста идея: какво ще стане, ако можем да намалим отпадъците,
+            като помогнем на хората да разменят предмети, от които вече не се нуждаят, с други, които
+            могат да ги използват? Тази платформа е резултат от тази визия, създавайки пространство,
+            където устойчивостта се среща с общността.
           </Typography>
           <Typography
             variant="body1"
@@ -144,9 +143,9 @@ const About: React.FC = () => {
               lineHeight: 1.8,
             }}
           >
-            Today, we're proud to facilitate thousands of swaps, helping reduce waste
-            and build connections between eco-conscious individuals. Every swap
-            represents a step towards a more sustainable future.
+            Днес с гордост улесняваме хиляди размени, помагайки за намаляване на отпадъците
+            и изграждане на връзки между екологично съзнателни хора. Всяка размяна
+            представлява крачка към по-устойчиво бъдеще.
           </Typography>
         </Box>
       </Container>

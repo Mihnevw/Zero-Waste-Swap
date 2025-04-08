@@ -20,23 +20,23 @@ const HowItWorks: React.FC = () => {
   const steps = [
     {
       icon: <SearchIcon sx={{ fontSize: 40 }} />,
-      title: 'Browse Items',
-      description: 'Search through our collection of pre-loved items available for swapping.',
+      title: 'Разгледайте предметите',
+      description: 'Търсете сред нашата колекция от използвани предмети, достъпни за размяна.',
     },
     {
       icon: <ChatIcon sx={{ fontSize: 40 }} />,
-      title: 'Connect',
-      description: 'Contact the item owner and discuss the potential swap.',
+      title: 'Свържете се',
+      description: 'Свържете се със собственика на предмета и обсъдете възможната размяна.',
     },
     {
       icon: <SwapIcon sx={{ fontSize: 40 }} />,
-      title: 'Swap',
-      description: 'Meet up and exchange items with other community members.',
+      title: 'Разменете',
+      description: 'Срещнете се и разменете предмети с други членове на общността.',
     },
     {
       icon: <RecyclingIcon sx={{ fontSize: 40 }} />,
-      title: 'Reduce Waste',
-      description: 'Help reduce waste by giving items a second life through swapping.',
+      title: 'Намалете отпадъците',
+      description: 'Помогнете за намаляване на отпадъците, като дадете на предметите втори живот чрез размяна.',
     },
   ];
 
@@ -54,7 +54,7 @@ const HowItWorks: React.FC = () => {
             fontSize: { xs: '2rem', sm: '3rem', md: '3.75rem' },
           }}
         >
-          How It Works
+          Как работи
         </Typography>
 
         <Grid container spacing={4}>
@@ -108,16 +108,17 @@ const HowItWorks: React.FC = () => {
             gutterBottom
             sx={{ fontWeight: 600 }}
           >
-            Join Our Community
+            Присъединете се към нашата общност
           </Typography>
           <Typography
             variant="body1"
             color="text.secondary"
             sx={{ maxWidth: 800, mx: 'auto', mb: 4 }}
           >
-            Be part of a growing community of eco-conscious individuals who are making
-            a difference by choosing to swap instead of shop. Every swap contributes
-            to reducing waste and promoting sustainable consumption.
+            Бъдете част от растящата общност от екологично съзнателни хора, които
+            правят разлика, като избират да разменят вместо да пазаруват. Всяка
+            размяна допринася за намаляване на отпадъците и насърчаване на
+            устойчиво потребление.
           </Typography>
         </Box>
       </Container>

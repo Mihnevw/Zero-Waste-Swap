@@ -7,72 +7,72 @@ const Terms: React.FC = () => {
       <Box sx={{ my: 4 }}>
         <Paper elevation={0} sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom>
-            Terms of Service
+            Общи условия за ползване
           </Typography>
           
           <Typography variant="body1" paragraph>
-            Last updated: {new Date().toLocaleDateString()}
+            Последна актуализация: {new Date().toLocaleDateString('bg-BG')}
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            1. Acceptance of Terms
+            1. Приемане на условията
           </Typography>
           <Typography variant="body1" paragraph>
-            By accessing and using the Zero-Waste Swap Platform, you agree to be bound by these Terms of Service and all applicable laws and regulations.
+            Чрез достъп и използване на платформата Zero-Waste Swap, вие се съгласявате да се придържате към тези Общи условия за ползване и всички приложими закони и разпоредби.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            2. User Accounts
+            2. Потребителски акаунти
           </Typography>
           <Typography variant="body1" paragraph>
-            You must create an account to use certain features of our platform. You are responsible for maintaining the confidentiality of your account information and for all activities under your account.
+            Трябва да създадете акаунт, за да използвате определени функции на нашата платформа. Вие сте отговорни за поддържането на поверителността на информацията за вашия акаунт и за всички действия, извършени под вашия акаунт.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            3. Listing Guidelines
+            3. Насоки за публикуване на обяви
           </Typography>
           <Typography variant="body1" paragraph>
-            When creating listings, you agree to:
-            • Provide accurate and complete information
-            • Only list items you have the right to swap or give away
-            • Not list prohibited items
-            • Maintain and update your listings
+            При създаване на обяви, вие се съгласявате да:
+            • Предоставяте точна и пълна информация
+            • Публикувате само предмети, които имате право да разменяте или давате
+            • Не публикувате забранени предмети
+            • Поддържате и актуализирате вашите обяви
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            4. User Conduct
+            4. Потребителско поведение
           </Typography>
           <Typography variant="body1" paragraph>
-            You agree not to:
-            • Violate any laws or regulations
-            • Infringe on others' intellectual property rights
-            • Harass or harm other users
-            • Post false or misleading information
+            Вие се съгласявате да не:
+            • Нарушавате закони или разпоредби
+            • Нарушавате интелектуалните права на другите
+            • Притеснявате или навреждате на други потребители
+            • Публикувате невярна или подвеждаща информация
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            5. Platform Rules
+            5. Правила на платформата
           </Typography>
           <Typography variant="body1" paragraph>
-            We reserve the right to:
-            • Remove any content that violates these terms
-            • Suspend or terminate accounts
-            • Modify or discontinue services
-            • Update these terms at any time
+            Ние си запазваме правото да:
+            • Премахваме всяко съдържание, което нарушава тези условия
+            • Спираме или прекратяваме акаунти
+            • Променяме или прекратяваме услугите
+            • Актуализираме тези условия по всяко време
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            6. Liability
+            6. Отговорност
           </Typography>
           <Typography variant="body1" paragraph>
-            The platform is provided "as is" without warranties of any kind. We are not responsible for the conduct of users or the quality of items exchanged through our platform.
+            Платформата се предоставя "както е" без никакви гаранции. Ние не носим отговорност за поведението на потребителите или качеството на предметите, разменяни чрез нашата платформа.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            7. Contact
+            7. Контакт
           </Typography>
           <Typography variant="body1" paragraph>
-            For questions about these Terms of Service, please contact us through our platform's contact form.
+            За въпроси относно тези Общи условия за ползване, моля, свържете се с нас чрез контактната форма на нашата платформа.
           </Typography>
         </Paper>
       </Box>
