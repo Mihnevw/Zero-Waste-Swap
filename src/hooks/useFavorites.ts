@@ -36,7 +36,7 @@ export const useFavorites = () => {
       },
       (err) => {
         console.error('Error fetching favorites:', err);
-        setError('Failed to fetch favorites');
+        setError('Грешка при зареждане на любими');
         setLoading(false);
       }
     );
@@ -46,7 +46,7 @@ export const useFavorites = () => {
 
   const toggleFavorite = async (listingId: string | number) => {
     if (!user) {
-      setError('Please sign in to add favorites');
+      setError('Моля, влезте в системата, за да добавите в любими');
       return;
     }
 
@@ -73,7 +73,7 @@ export const useFavorites = () => {
           const listingDoc = await getDoc(listingRef);
           
           if (!listingDoc.exists()) {
-            setError('Listing does not exist');
+            setError('Обявата не съществува');
             return;
           }
         }
@@ -90,7 +90,7 @@ export const useFavorites = () => {
       }
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      setError('Failed to update favorite');
+      setError('Грешка при обновяване на любими');
     }
   };
 

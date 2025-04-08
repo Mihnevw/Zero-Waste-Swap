@@ -40,20 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
-      let errorMessage = 'Failed to login. Please try again.';
+      let errorMessage = 'Грешка при влизане. Моля, опитайте отново.';
 
       switch (err.code) {
         case 'auth/user-not-found':
-          errorMessage = 'No account found with this email';
+          errorMessage = 'Няма акаунт с този имейл';
           break;
         case 'auth/wrong-password':
-          errorMessage = 'Incorrect password';
+          errorMessage = 'Грешна парола';
           break;
         case 'auth/invalid-email':
-          errorMessage = 'Invalid email address';
+          errorMessage = 'Невалиден имейл адрес';
           break;
         case 'auth/too-many-requests':
-          errorMessage = 'Too many failed attempts. Please try again later';
+          errorMessage = 'Твърде много неуспешни опити. Моля, опитайте по-късно';
           break;
         default:
           errorMessage = err.message || errorMessage;
@@ -74,20 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         displayName: name
       });
     } catch (err: any) {
-      let errorMessage = 'Failed to register. Please try again.';
+      let errorMessage = 'Грешка при регистрация. Моля, опитайте отново.';
 
       switch (err.code) {
         case 'auth/email-already-in-use':
-          errorMessage = 'This email is already registered';
+          errorMessage = 'Този имейл вече е регистриран';
           break;
         case 'auth/invalid-email':
-          errorMessage = 'Invalid email address';
+          errorMessage = 'Невалиден имейл адрес';
           break;
         case 'auth/operation-not-allowed':
-          errorMessage = 'Email/password accounts are not enabled';
+          errorMessage = 'Акаунти с имейл/парола не са разрешени';
           break;
         case 'auth/weak-password':
-          errorMessage = 'Password should be at least 8 characters';
+          errorMessage = 'Паролата трябва да е поне 8 символа';
           break;
         default:
           errorMessage = err.message || errorMessage;
@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       await signOut(auth);
     } catch (err: any) {
-      setError(err.message || 'Failed to logout');
+      setError(err.message || 'Грешка при излизане');
       throw err;
     }
   };
