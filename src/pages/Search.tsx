@@ -41,6 +41,8 @@ import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '../hooks/useFavorites';
 import debounce from 'lodash/debounce';
 import { formatDistanceToNow } from 'date-fns';
+import AnimatedPage from '../components/AnimatedPage';
+import { SelectChangeEvent } from '@mui/material';
 
 interface Listing {
   id: string;
@@ -70,20 +72,65 @@ const Search = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sortBy, setSortBy] = useState('relevance');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'all');
   const { toggleFavorite, isFavorite } = useFavorites();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
+  const defaultCategories = [
+    'all',
+    'Дрехи',
+    'Електроника',
+    'Книги',
+    'Мебели',
+    'Спортни стоки',
+    'Други'
+  ];
+
+  // Map for converting between English and Bulgarian categories
+  const categoryMap: { [key: string]: string } = {
+    'electronics': 'Електроника',
+    'clothing': 'Дрехи',
+    'books': 'Книги',
+    'furniture': 'Мебели',
+    'sports': 'Спортни стоки',
+    'other': 'Други',
+    'Електроника': 'Електроника',
+    'Дрехи': 'Дрехи',
+    'Книги': 'Книги',
+    'Мебели': 'Мебели',
+    'Спортни стоки': 'Спортни стоки',
+    'Други': 'Други'
+  };
+
   // Get unique categories from listings
-  const categories = ['all', ...new Set(listings.map(listing => listing.category))];
+  const categories = [...new Set([...defaultCategories, ...listings.map(listing => listing.category)])];
+
+  // Update category filter when URL changes
+  useEffect(() => {
+    const category = searchParams.get('category');
+    if (category) {
+      setCategoryFilter(categoryMap[category] || 'all');
+    }
+  }, [searchParams]);
+
+  const handleCategoryChange = (event: SelectChangeEvent<string>) => {
+    const newCategory = event.target.value;
+    setCategoryFilter(newCategory);
+    
+    // Update URL parameters while preserving the search query if it exists
+    const query = searchParams.get('q');
+    const newParams: { q?: string; category?: string } = {};
+    if (query) {
+      newParams.q = query;
+    }
+    if (newCategory !== 'all') {
+      newParams.category = newCategory;
+    }
+    setSearchParams(newParams);
+  };
 
   const searchListings = useCallback((searchText: string) => {
-    if (!searchText.trim() && !categoryFilter) {
-      setListings([]);
-      return () => {};
-    }
-
     setLoading(true);
     setError('');
 
@@ -133,9 +180,14 @@ const Search = () => {
             });
           }
 
-          // Apply category filter
+          // Apply category filter only if it's not 'all'
           if (categoryFilter && categoryFilter !== 'all') {
-            results = results.filter(listing => listing.category === categoryFilter);
+            results = results.filter(listing => {
+              const listingCategory = listing.category.toLowerCase();
+              const filterCategory = categoryFilter.toLowerCase();
+              return listingCategory === filterCategory || 
+                     listingCategory === categoryMap[filterCategory]?.toLowerCase();
+            });
           }
 
           // Score and sort results
@@ -174,7 +226,7 @@ const Search = () => {
         },
         (error) => {
           console.error('Error searching listings:', error);
-          setError('Failed to search listings. Please try again.');
+          setError('Грешка при търсене на обяви. Моля, опитайте отново.');
           setLoading(false);
         }
       );
@@ -182,7 +234,7 @@ const Search = () => {
       return unsubscribe;
     } catch (err) {
       console.error('Error setting up search:', err);
-      setError('Failed to set up search. Please try again.');
+      setError('Грешка при настройка на търсенето. Моля, опитайте отново.');
       setLoading(false);
       return () => {};
     }
@@ -260,187 +312,111 @@ const Search = () => {
   };
 
   const handleFavoriteClick = async (e: React.MouseEvent, listing: Listing) => {
-    e.stopPropagation(); // Prevent card click when clicking favorite
+    e.stopPropagation();
     try {
       await toggleFavorite(listing.id);
-      setSnackbarMessage(isFavorite(listing.id) ? 'Removed from favorites' : 'Added to favorites');
+      setSnackbarMessage(isFavorite(listing.id) ? 'Премахнато от любими' : 'Добавено към любими');
       setSnackbarOpen(true);
-    } catch (err) {
-      setError('Failed to update favorites');
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      setSnackbarMessage('Грешка при добавяне към любими');
+      setSnackbarOpen(true);
     }
   };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Paper 
-          elevation={2} 
-          sx={{ 
-            p: 3, 
-            mb: 4, 
-            background: theme.palette.background.default,
-            borderRadius: 2,
-            border: `1px solid ${theme.palette.divider}`
-          }}
-        >
-          <Typography 
-            variant="h4" 
-            component="h1" 
-            gutterBottom
-            sx={{ 
-              fontWeight: 600,
-              color: theme.palette.primary.main,
-              mb: 3
-            }}
-          >
-            Search Results
-          </Typography>
-          
-          <Box sx={{ mb: 3 }}>
-            <SearchBar
-              value={searchQuery}
-              onChange={handleSearch}
-              placeholder="Search listings..."
-              sx={{
-                '& .MuiInputBase-root': {
-                  backgroundColor: '#ffffff',
-                  borderRadius: 2,
-                  border: `1px solid ${theme.palette.divider}`,
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    border: `1px solid ${theme.palette.primary.main}`,
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-                  },
-                  '&.Mui-focused': {
-                    border: `2px solid ${theme.palette.primary.main}`,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  }
-                },
-                '& .MuiInputBase-input': {
-                  padding: '16px',
-                  fontSize: '1.1rem',
-                  '&::placeholder': {
-                    color: theme.palette.text.secondary,
-                    opacity: 0.8
-                  }
-                },
-                '& .MuiInputAdornment-root .MuiSvgIcon-root': {
-                  fontSize: '1.5rem',
-                  color: theme.palette.primary.main,
-                  marginLeft: '8px'
-                }
-              }}
-            />
-          </Box>
-
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 2,
-            flexDirection: isMobile ? 'column' : 'row',
-            alignItems: isMobile ? 'stretch' : 'center'
-          }}>
-            <FormControl 
-              size="small" 
-              sx={{ 
-                minWidth: 120,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: theme.palette.background.paper,
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: theme.palette.primary.main,
-                  }
-                }
-              }}
-            >
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={categoryFilter}
-                label="Category"
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                startAdornment={<CategoryIcon sx={{ mr: 1 }} />}
+    <AnimatedPage animation="fade">
+      <Box sx={{ pt: 8 }}>
+        <Container maxWidth="lg">
+          <AnimatedPage animation="slide" delay={0.2}>
+            <Box sx={{ mb: 4 }}>
+              <Typography 
+                variant="h4" 
+                component="h1" 
+                gutterBottom
+                sx={{ 
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  mb: 3,
+                  background: 'linear-gradient(45deg, #2196F3 30%, #4CAF50 90%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}
               >
-                {categories.map(category => (
-                  <MenuItem key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl 
-              size="small" 
-              sx={{ 
-                minWidth: 120,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: theme.palette.background.paper,
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: theme.palette.primary.main,
-                  }
-                }
-              }}
-            >
-              <InputLabel>Sort By</InputLabel>
-              <Select
-                value={sortBy}
-                label="Sort By"
-                onChange={(e) => setSortBy(e.target.value)}
-                startAdornment={<SortIcon sx={{ mr: 1 }} />}
-              >
-                <MenuItem value="relevance">Relevance</MenuItem>
-                <MenuItem value="newest">Newest First</MenuItem>
-                <MenuItem value="oldest">Oldest First</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-        </Paper>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              mb: 3 
-            }}>
-              <Typography variant="subtitle1">
-                <Badge 
-                  badgeContent={listings.length} 
-                  color="primary"
-                  sx={{ '& .MuiBadge-badge': { fontSize: '0.9rem' } }}
-                >
-                  <Typography component="span" sx={{ mr: 3 }}>Results</Typography>
-                </Badge>
+                Дайте втори живот на вещите си
               </Typography>
-            </Box>
-
-            <Grid container spacing={3}>
-              {listings.map((listing) => (
-                <Grid item xs={12} sm={6} md={4} key={listing.id}>
-                  <Card 
-                    sx={{ 
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease-in-out',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: theme.shadows[4]
-                      }
-                    }}
-                    onClick={() => handleListingClick(listing)}
+              <Typography 
+                variant="subtitle1" 
+                gutterBottom 
+                sx={{ 
+                  textAlign: 'center',
+                  mb: 4,
+                  color: 'text.secondary'
+                }}
+              >
+                Разменете, споделете, намерете съкровища
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ flexGrow: 1 }}>
+                  <SearchBar
+                    variant="search"
+                    placeholder="Търсене..."
+                    value={searchQuery}
+                    onChange={handleSearch}
+                  />
+                </Box>
+                <FormControl sx={{ minWidth: 200 }}>
+                  <InputLabel>Категория</InputLabel>
+                  <Select
+                    value={categoryFilter}
+                    onChange={handleCategoryChange}
+                    label="Категория"
                   >
-                    <Box sx={{ position: 'relative' }}>
+                    <MenuItem value="all">Всички категории</MenuItem>
+                    {categories.filter(cat => cat !== 'all').map((category) => (
+                      <MenuItem key={category} value={category}>
+                        {category}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+          </AnimatedPage>
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mt: 4 }}>
+              {error}
+            </Alert>
+          ) : listings.length === 0 ? (
+            <AnimatedPage animation="fade" delay={0.6}>
+              <Alert severity="info" sx={{ mt: 4 }}>
+                Няма намерени обяви, отговарящи на критериите за търсене.
+              </Alert>
+            </AnimatedPage>
+          ) : (
+            <Grid container spacing={4}>
+              {listings.map((listing, index) => (
+                <Grid item xs={12} sm={6} md={4} key={listing.id}>
+                  <AnimatedPage animation="scale" delay={0.4 + index * 0.1}>
+                    <Card
+                      sx={{
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: theme.shadows[4],
+                        },
+                      }}
+                      onClick={() => handleListingClick(listing)}
+                    >
                       <CardMedia
                         component="img"
                         height="200"
@@ -448,115 +424,77 @@ const Search = () => {
                         alt={listing.title}
                         sx={{ objectFit: 'cover' }}
                       />
-                      <IconButton
-                        size="small"
-                        sx={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                          '&:hover': {
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                          },
-                        }}
-                        onClick={(e) => handleFavoriteClick(e, listing)}
-                      >
-                        {isFavorite(listing.id) ? (
-                          <FavoriteIcon color="primary" />
-                        ) : (
-                          <FavoriteBorderIcon />
-                        )}
-                      </IconButton>
-                    </Box>
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" component="h2" gutterBottom noWrap>
-                        {listing.title}
-                      </Typography>
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary" 
-                        sx={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          mb: 2
-                        }}
-                      >
-                        {listing.description}
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <LocationIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-                        <Typography variant="body2" color="text.secondary" noWrap>
-                          {listing.location.address}
+                      <CardContent sx={{ flexGrow: 1 }}>
+                        <Typography variant="h6" gutterBottom>
+                          {listing.title}
                         </Typography>
-                      </Box>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <TimeIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDistanceToNow(listing.createdAt, { addSuffix: true })}
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ 
+                            mb: 2,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {listing.description}
                         </Typography>
-                      </Box>
-                    </CardContent>
-                    <Divider />
-                    <CardActions sx={{ justifyContent: 'space-between', px: 2, py: 1 }}>
-                      <Chip 
-                        label={listing.category}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                      <Chip 
-                        label={listing.condition}
-                        size="small"
-                        color="secondary"
-                        variant="outlined"
-                      />
-                    </CardActions>
-                  </Card>
+                        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                          <Chip 
+                            icon={<CategoryIcon />} 
+                            label={listing.category}
+                            size="small"
+                          />
+                          <Chip 
+                            label={listing.condition}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <LocationIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="text.secondary">
+                            {listing.location.address}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                          <TimeIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="text.secondary">
+                            {formatDistanceToNow(listing.createdAt, { addSuffix: true })}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                      <CardActions>
+                        <IconButton
+                          onClick={(e) => handleFavoriteClick(e, listing)}
+                          sx={{ ml: 'auto' }}
+                        >
+                          {isFavorite(listing.id) ? (
+                            <FavoriteIcon color="error" />
+                          ) : (
+                            <FavoriteBorderIcon />
+                          )}
+                        </IconButton>
+                      </CardActions>
+                    </Card>
+                  </AnimatedPage>
                 </Grid>
               ))}
             </Grid>
-
-            {listings.length === 0 && !loading && searchQuery && (
-              <Box 
-                sx={{ 
-                  textAlign: 'center', 
-                  py: 8,
-                  backgroundColor: theme.palette.background.default,
-                  borderRadius: 1
-                }}
-              >
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No results found for "{searchQuery}"
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Try adjusting your search terms or filters
-                </Typography>
-              </Box>
-            )}
-          </>
-        )}
+          )}
+        </Container>
       </Box>
 
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setSnackbarOpen(false)} 
-          severity="success" 
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-    </Container>
+        message={snackbarMessage}
+      />
+    </AnimatedPage>
   );
 };
 
