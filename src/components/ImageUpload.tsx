@@ -81,11 +81,11 @@ const ImageUpload = ({ onUpload, currentImageUrl }: ImageUploadProps) => {
         {uploading ? (
           <CircularProgress size={24} />
         ) : (
-          'Upload Image'
+          'Качи снимка'
         )}
       </Button>
       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-        Supported formats: JPG, PNG, GIF (max 5MB)
+        Поддържани формати: JPG, PNG, GIF (макс. 5MB)
       </Typography>
     </Box>
   );
