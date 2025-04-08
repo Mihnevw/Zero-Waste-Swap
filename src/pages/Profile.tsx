@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -9,13 +9,21 @@ import {
   Avatar,
   Divider,
   Button,
+  Card,
+  CardContent,
+  CardMedia,
+  CardActions,
+  Chip,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
-import { Edit as EditIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useListings } from '../hooks/useListings';
 import ListingCard from '../components/ListingCard';
+import AnimatedPage from '../components/AnimatedPage';
 
-const Profile = () => {
+const Profile: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { listings, loading: listingsLoading } = useListings();
   const navigate = useNavigate();
@@ -46,113 +54,95 @@ const Profile = () => {
     if (user.email && user.email.trim().length > 0) {
       return user.email.trim()[0].toUpperCase();
     }
-    return 'U';
+    return 'П';
   };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Paper 
-          elevation={2}
-          sx={{ 
-            p: 4,
-            mb: 4,
-            borderRadius: 2,
-            background: 'linear-gradient(to right, #f5f5f5, #ffffff)'
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <Avatar
-              src={user.photoURL || undefined}
-              alt={user.displayName || user.email || 'User'}
-              sx={{ 
-                width: 100,
-                height: 100,
-                mr: 3,
-                fontSize: '2.5rem',
-                bgcolor: 'primary.main'
-              }}
-            >
-              {getAvatarText()}
-            </Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Typography 
-                  variant="h4" 
-                  component="h1"
-                  sx={{ 
-                    fontWeight: 600,
-                    mr: 2
-                  }}
-                >
-                  {user.displayName || 'User Profile'}
-                </Typography>
-                <Button
-                  startIcon={<EditIcon />}
-                  size="small"
-                  onClick={() => navigate('/settings')}
-                >
-                  Edit Profile
-                </Button>
-              </Box>
-              <Typography 
-                variant="body1" 
-                color="text.secondary"
-                sx={{ mb: 1 }}
-              >
-                {user.email}
+    <AnimatedPage animation="fade">
+      <Box sx={{ pt: 8 }}>
+        <Container maxWidth="lg">
+          <AnimatedPage animation="slide" delay={0.2}>
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                Профил
+              </Typography>
+              <Typography variant="body1" color="text.secondary" paragraph>
+                Управлявайте вашия профил и обяви.
               </Typography>
             </Box>
-          </Box>
-        </Paper>
+          </AnimatedPage>
 
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 600 }}>
-            My Listings ({userListings.length})
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate('/create-listing')}
-          >
-            Create New Listing
-          </Button>
-        </Box>
-        <Divider sx={{ mb: 3 }} />
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={4}>
+              <AnimatedPage animation="scale" delay={0.4}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+                      <Avatar
+                        sx={{ width: 100, height: 100, mb: 2 }}
+                        alt={user?.displayName || 'User'}
+                        src={user?.photoURL || ''}
+                      />
+                      <Typography variant="h6" gutterBottom>
+                        {user?.displayName || 'Потребител'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {user?.email}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        onClick={() => navigate('/settings')}
+                      >
+                        Настройки
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        onClick={() => navigate('/create-listing')}
+                      >
+                        Нова обява
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </AnimatedPage>
+            </Grid>
 
-        {listingsLoading ? (
-          <Typography>Loading listings...</Typography>
-        ) : userListings.length > 0 ? (
-          <Grid container spacing={3}>
-            {userListings.map((listing) => (
-              <Grid item xs={12} sm={6} md={4} key={listing.id}>
-                <ListingCard listing={listing} />
-              </Grid>
-            ))}
+            <Grid item xs={12} md={8}>
+              <AnimatedPage animation="slide" delay={0.6}>
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="h5" gutterBottom>
+                    Моите обяви
+                  </Typography>
+                  {listingsLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : userListings.length === 0 ? (
+                    <Alert severity="info">
+                      Все още нямате публикувани обяви.
+                    </Alert>
+                  ) : (
+                    <Grid container spacing={3}>
+                      {userListings.map((listing, index) => (
+                        <Grid item xs={12} sm={6} key={listing.id}>
+                          <AnimatedPage animation="scale" delay={0.8 + index * 0.1}>
+                            <ListingCard listing={listing} />
+                          </AnimatedPage>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
+                </Box>
+              </AnimatedPage>
+            </Grid>
           </Grid>
-        ) : (
-          <Paper 
-            sx={{ 
-              p: 4, 
-              textAlign: 'center',
-              bgcolor: 'background.default'
-            }}
-          >
-            <Typography color="text.secondary" gutterBottom>
-              You haven't created any listings yet.
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => navigate('/create-listing')}
-              sx={{ mt: 2 }}
-            >
-              Create Your First Listing
-            </Button>
-          </Paper>
-        )}
+        </Container>
       </Box>
-    </Container>
+    </AnimatedPage>
   );
 };
 

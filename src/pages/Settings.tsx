@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -9,12 +9,14 @@ import {
   Paper,
   Alert,
   Avatar,
-  CircularProgress
+  CircularProgress,
+  Grid
 } from '@mui/material';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '../hooks/useAuth';
+import AnimatedPage from '../components/AnimatedPage';
 
-const Settings = () => {
+const Settings: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
@@ -42,7 +44,7 @@ const Settings = () => {
         navigate('/profile');
       }, 2000);
     } catch (err) {
-      setError('Failed to update profile. Please try again.');
+      setError('Грешка при актуализиране на профила. Моля, опитайте отново.');
       console.error('Error updating profile:', err);
     } finally {
       setLoading(false);
@@ -50,84 +52,72 @@ const Settings = () => {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ my: 4 }}>
-        <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              Profile Settings
-            </Typography>
-            <Avatar
-              src={user.photoURL || undefined}
-              alt={user.displayName || user.email || 'User'}
-              sx={{ 
-                width: 100, 
-                height: 100,
-                mb: 2,
-                fontSize: '2.5rem',
-                bgcolor: 'primary.main'
-              }}
-            >
-              {displayName.trim()[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-            </Avatar>
-          </Box>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          {success && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              Profile updated successfully! Redirecting...
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="displayName"
-              label="Display Name"
-              name="displayName"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              disabled={loading}
-            />
-            <TextField
-              margin="normal"
-              fullWidth
-              id="email"
-              label="Email"
-              value={user.email || ''}
-              disabled
-            />
-            <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                disabled={loading}
-              >
-                {loading ? <CircularProgress size={24} /> : 'Save Changes'}
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                fullWidth
-                onClick={() => navigate('/profile')}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
+    <AnimatedPage animation="fade">
+      <Box sx={{ pt: 8 }}>
+        <Container maxWidth="md">
+          <AnimatedPage animation="slide" delay={0.2}>
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                Настройки
+              </Typography>
+              <Typography variant="body1" color="text.secondary" paragraph>
+                Управлявайте вашите лични данни и настройки.
+              </Typography>
             </Box>
-          </Box>
-        </Paper>
+          </AnimatedPage>
+
+          <AnimatedPage animation="scale" delay={0.4}>
+            <Paper sx={{ p: 4 }}>
+              <form onSubmit={handleSubmit}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Име"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      required
+                      error={!!error}
+                      helperText={error}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Имейл"
+                      value={user.email || ''}
+                      disabled
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <AnimatedPage animation="slide" delay={0.6}>
+                      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                        <Button
+                          variant="outlined"
+                          onClick={() => navigate(-1)}
+                        >
+                          Отказ
+                        </Button>
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          disabled={loading}
+                        >
+                          {loading ? <CircularProgress size={24} /> : 'Запази промените'}
+                        </Button>
+                      </Box>
+                    </AnimatedPage>
+                  </Grid>
+                </Grid>
+              </form>
+            </Paper>
+          </AnimatedPage>
+        </Container>
       </Box>
-    </Container>
+    </AnimatedPage>
   );
 };
 
