@@ -27,28 +27,28 @@ const Footer: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const quickLinks = [
-    { title: 'Home', path: '/' },
-    { title: 'About Us', path: '/about' },
-    { title: 'How It Works', path: '/how-it-works' },
-    { title: 'Create Listing', path: '/create-listing' },
-    { title: 'Search', path: '/search' },
-    { title: 'Contact', path: '/contact' },
+    { title: 'Начало', path: '/' },
+    { title: 'За нас', path: '/about' },
+    { title: 'Как работи', path: '/how-it-works' },
+    { title: 'Създай обява', path: '/create-listing' },
+    { title: 'Търсене', path: '/search' },
+    { title: 'Контакти', path: '/contact' },
   ];
 
   const legalLinks = [
-    { title: 'Privacy Policy', path: '/privacy' },
-    { title: 'Terms of Service', path: '/terms' },
+    { title: 'Политика за поверителност', path: '/privacy' },
+    { title: 'Условия за ползване', path: '/terms' },
   ];
 
   const categories: Category[] = [
-    { name: 'Clothing', icon: '' },
-    { name: 'Electronics', icon: '' },
-    { name: 'Books', icon: '' },
-    { name: 'Furniture', icon: '' },
-    { name: 'Sports Equipment', icon: '' },
-    { name: 'Kitchen', icon: '' },
-    { name: 'Tools', icon: '' },
-    { name: 'Other', icon: '' }
+    { name: 'Дрехи', icon: '' },
+    { name: 'Електроника', icon: '' },
+    { name: 'Книги', icon: '' },
+    { name: 'Мебели', icon: '' },
+    { name: 'Спортни стоки', icon: '' },
+    { name: 'Кухненски принадлежности', icon: '' },
+    { name: 'Инструменти', icon: '' },
+    { name: 'Други', icon: '' }
   ];
 
   return (
@@ -66,7 +66,7 @@ const Footer: React.FC = () => {
           {/* Quick Links */}
           <Grid item xs={12} sm={6} md={3}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Quick Links
+              Бързи връзки
             </Typography>
             {quickLinks.map((link) => (
               <Link
@@ -94,7 +94,7 @@ const Footer: React.FC = () => {
           {/* Categories */}
           <Grid item xs={12} sm={6} md={3}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Categories
+              Категории
             </Typography>
             {categories.map((category) => (
               <Link
@@ -122,7 +122,7 @@ const Footer: React.FC = () => {
           {/* Contact Info */}
           <Grid item xs={12} sm={6} md={3}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Contact Us
+              Контакти
             </Typography>
             <Box sx={{ mb: 2 }}>
               <Link
@@ -166,7 +166,7 @@ const Footer: React.FC = () => {
               >
                 <LocationOnIcon sx={{ mr: 1 }} />
                 <Typography variant="body2">
-                  Sliven, Bulgaria
+                  Сливен, България
                 </Typography>
               </Box>
             </Box>
@@ -175,7 +175,7 @@ const Footer: React.FC = () => {
           {/* Legal Links */}
           <Grid item xs={12} sm={6} md={3}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Legal
+              Правна информация
             </Typography>
             {legalLinks.map((link) => (
               <Link
@@ -204,7 +204,7 @@ const Footer: React.FC = () => {
         <Divider sx={{ my: 4, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
 
         <Typography variant="body2" align="center" sx={{ opacity: 0.8 }}>
-          © {new Date().getFullYear()} Zero-Waste Swap Platform. All rights reserved.
+          © {new Date().getFullYear()} Zero-Waste Swap Platform. Всички права запазени.
         </Typography>
       </Container>
     </Box>
