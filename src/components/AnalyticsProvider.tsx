@@ -13,7 +13,7 @@ const AnalyticsContext = createContext<AnalyticsContextType>({
 export const useAnalytics = () => {
   const context = useContext(AnalyticsContext);
   if (!context) {
-    throw new Error('useAnalytics must be used within an AnalyticsProvider');
+    throw new Error('useAnalytics трябва да се използва в AnalyticsProvider');
   }
   return context;
 };
