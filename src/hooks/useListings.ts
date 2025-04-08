@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, getDocs, QuerySnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, getDocs, QuerySnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Listing } from '../types/listing';
 
@@ -7,6 +7,28 @@ export const useListings = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const updateListing = async (id: string, data: Partial<Listing>) => {
+    try {
+      setError(null);
+      const listingRef = doc(db, 'listings', id);
+      await updateDoc(listingRef, data);
+    } catch (err) {
+      setError('Грешка при обновяване на обявата');
+      throw err;
+    }
+  };
+
+  const deleteListing = async (id: string) => {
+    try {
+      setError(null);
+      const listingRef = doc(db, 'listings', id);
+      await deleteDoc(listingRef);
+    } catch (err) {
+      setError('Грешка при изтриване на обявата');
+      throw err;
+    }
+  };
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -63,7 +85,7 @@ export const useListings = () => {
       } catch (err) {
         console.error('Error in fetchListings:', err);
         if (isMounted) {
-          setError('Failed to fetch listings');
+          setError('Грешка при зареждане на обявите');
           setLoading(false);
         }
       }
@@ -79,7 +101,7 @@ export const useListings = () => {
       } catch (err) {
         console.error('Error fetching listings with getDocs:', err);
         if (isMounted) {
-          setError('Failed to fetch listings');
+          setError('Грешка при зареждане на обявите');
           setLoading(false);
         }
       }
@@ -95,5 +117,5 @@ export const useListings = () => {
     };
   }, []);
 
-  return { listings, loading, error };
+  return { listings, loading, error, updateListing, deleteListing };
 }; 

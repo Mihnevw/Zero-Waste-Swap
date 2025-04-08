@@ -5,6 +5,7 @@ export interface Listing {
   category: string;
   images: string[];
   userName: string;
+  userEmail: string;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -13,7 +14,7 @@ export interface Listing {
     longitude: number;
     address: string;
   };
-  status: 'available' | 'pending' | 'completed';
-  condition: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
+  status: 'налично' | 'чакащо' | 'завършено';
+  condition: 'ново' | 'като ново' | 'добро' | 'задоволително' | 'лошо';
   tags?: string[];
 } 
