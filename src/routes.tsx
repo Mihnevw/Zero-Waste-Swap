@@ -15,6 +15,8 @@ import Contact from './pages/Contact';
 import Favorites from './pages/Favorites';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import ForgotPassword from './pages/ForgotPassword';
+import NotFound from './pages/NotFound';
 
 const AppRoutes = () => {
   return (
@@ -22,6 +24,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/contact" element={<Contact />} />
@@ -35,6 +38,7 @@ const AppRoutes = () => {
       <Route path="/favorites" element={<Favorites />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
