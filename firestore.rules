@@ -12,11 +12,46 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
+    // Helper function to validate favorite data
+    function isValidFavorite() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['userId', 'listingId', 'createdAt', 'id']) &&
+        data.userId == request.auth.uid &&
+        data.listingId is string &&
+        data.id is string;
+    }
+
     // Listings collection rules
     match /listings/{listingId} {
       allow read: if true;  // Allow public read access
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Contact messages collection rules
+    match /contact_messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if true;  // Allow anyone to create contact messages
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Favorites collection rules
+    match /favorites/{favoriteId} {
+      allow read: if isAuthenticated() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        (request.query.limit <= 1000 && 
+        request.query.filters.size() == 1 && 
+        request.query.filters[0].op == '==' && 
+        request.query.filters[0].field_path == 'userId' && 
+        request.query.filters[0].value == request.auth.uid)
+      );
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['userId', 'listingId', 'createdAt', 'id']);
+      allow delete: if isAuthenticated() && (
+        resource == null || resource.data.userId == request.auth.uid
+      );
     }
 
     // Default deny all

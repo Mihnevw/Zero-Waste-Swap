@@ -46,11 +46,11 @@ const App: React.FC = () => {
               }}
             >
               <Navbar />
-              <Box 
-                component="main" 
-                sx={{ 
-                  flex: 1, 
-                  display: 'flex', 
+              <Box
+                component="main"
+                sx={{
+                  flex: 1,
+                  display: 'flex',
                   flexDirection: 'column',
                   width: '100%',
                   position: 'relative',

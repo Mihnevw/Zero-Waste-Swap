@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -12,13 +12,41 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
+  Tabs,
+  Tab,
+  Chip,
+  Button,
+  Divider,
 } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import ShareIcon from '@mui/icons-material/Share';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { useAnalytics } from '../components/AnalyticsProvider';
-import { heroImage, vegetablesImage, shoppingBagsImage, bambooImage, shoesImage, coffeeMakerImage, jacketImage, boardGamesImage, yogaMatImage, blenderImage, childrenBooksImage, gardenToolsImage, laptopStandImage, bicycleImage, artSuppliesImage, deskLampImage, laptopImage  } from '../assets/placeholders';
+import { heroImage, vegetablesImage, shoppingBagsImage, bambooImage, shoesImage, coffeeMakerImage, jacketImage, boardGamesImage, yogaMatImage, blenderImage, childrenBooksImage, gardenToolsImage, laptopStandImage, bicycleImage, artSuppliesImage, deskLampImage, laptopImage } from '../assets/placeholders';
 import SearchBar from '../components/SearchBar';
 import Footer from '../components/Footer';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { useFavorites } from '../hooks/useFavorites';
+import { useAuth } from '../hooks/useAuth';
+import { formatDistanceToNow } from 'date-fns';
+
+interface Listing {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  condition: string;
+  images: string[];
+  userEmail: string;
+  userName: string;
+  createdAt: Date;
+  location: {
+    address: string;
+    latitude: number;
+    longitude: number;
+  };
+}
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -26,10 +54,37 @@ const Home: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { logPageView } = useAnalytics();
   const [searchQuery, setSearchQuery] = useState('');
+  const [recentListings, setRecentListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { favorites, toggleFavorite } = useFavorites();
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     logPageView('home');
+    fetchRecentListings();
   }, [logPageView]);
+
+  const fetchRecentListings = async () => {
+    try {
+      const q = query(
+        collection(db, 'listings'),
+        orderBy('createdAt', 'desc'),
+        limit(8)
+      );
+      const querySnapshot = await getDocs(q);
+      const listings = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+      })) as Listing[];
+      setRecentListings(listings);
+    } catch (error) {
+      console.error('Error fetching recent listings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (query: string) => {
     if (query.trim()) {
@@ -37,11 +92,12 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleListingClick = (listing: any) => {
-    // Format the listing data to match our Listing type
-    const formattedListing = {
+  const handleListingClick = (listing: any, isDemoListing: boolean = false) => {
+    const listingId = isDemoListing ? `demo_${listing.id}` : listing.id;
+    const formattedListing = isDemoListing ? {
+      id: listingId,
       ...listing,
-      images: [listing.image], // Convert single image to images array
+      images: [listing.image],
       location: {
         address: listing.location,
         latitude: 0,
@@ -54,11 +110,115 @@ const Home: React.FC = () => {
       updatedAt: new Date(),
       condition: 'good',
       status: 'available' as const
-    };
+    } : listing;
 
-    navigate(`/listing/${listing.id}`, {
+    navigate(`/listing/${listingId}`, {
       state: { listing: formattedListing }
     });
+  };
+
+  const handleFavoriteClick = async (e: React.MouseEvent, listingId: string) => {
+    e.stopPropagation();
+    if (user) {
+      await toggleFavorite(listingId);
+    } else {
+      navigate('/login');
+    }
+  };
+
+  const renderListingCard = (listing: any, isDemoListing: boolean = false) => {
+    const listingId = isDemoListing ? `demo_${listing.id}` : listing.id;
+    const isFavorite = favorites.includes(listingId);
+    const images = isDemoListing ? [listing.image] : listing.images;
+    
+    // Safely handle location data
+    let locationText = 'Location not specified';
+    if (isDemoListing && listing.location) {
+      locationText = listing.location;
+    } else if (listing.location) {
+      locationText = typeof listing.location === 'string' 
+        ? listing.location 
+        : listing.location.address || 'Location not specified';
+    }
+
+    return (
+      <Card 
+        sx={{ 
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: theme.shadows[4]
+          }
+        }}
+        onClick={() => handleListingClick(listing, isDemoListing)}
+      >
+        <Box sx={{ position: 'relative' }}>
+          <CardMedia
+            component="img"
+            height="200"
+            image={images?.[0] || '/placeholder-image.jpg'}
+            alt={listing.title}
+            sx={{ objectFit: 'cover' }}
+          />
+          <IconButton
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              },
+            }}
+            onClick={(e) => handleFavoriteClick(e, listingId)}
+          >
+            {isFavorite ? (
+              <FavoriteIcon color="error" />
+            ) : (
+              <FavoriteBorderIcon />
+            )}
+          </IconButton>
+        </Box>
+        <CardContent sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" component="h2" gutterBottom>
+            {listing.title}
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              mb: 2
+            }}
+          >
+            {listing.description}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <LocationOnIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
+            <Typography variant="body2" color="text.secondary">
+              {locationText}
+            </Typography>
+          </Box>
+          {!isDemoListing && listing.category && (
+            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+              <Chip label={listing.category} size="small" color="primary" variant="outlined" />
+              {listing.condition && (
+                <Chip label={listing.condition} size="small" color="secondary" variant="outlined" />
+              )}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
   const featuredListings = [
@@ -189,176 +349,108 @@ const Home: React.FC = () => {
       image: laptopImage,
       location: 'Sliven, Bulgaria',
       category: 'Electronics',
-    }
+    },
   ];
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Hero Section */}
+    <>
       <Box
         sx={{
-          width: '100%',
-          minHeight: { xs: '50vh', sm: '60vh', md: '70vh' },
-          background: 'linear-gradient(45deg, #2E7D32 30%, #4CAF50 90%)',
-          position: 'relative',
+          background: `url(${heroImage}) no-repeat center center`,
+          backgroundSize: 'cover',
+          height: '60vh',
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
           alignItems: 'center',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Background Image */}
-        <Box
-          sx={{
+          justifyContent: 'center',
+          position: 'relative',
+          mb: 6,
+          '&::before': {
+            content: '""',
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundImage: `url(${heroImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.2,
-          }}
-        />
-        
-        {/* Hero Content */}
-        <Container 
-          maxWidth={false}
-          sx={{ 
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          },
+        }}
+      >
+        <Box
+          sx={{
             position: 'relative',
-            zIndex: 1,
-            width: '100%',
-            maxWidth: '1200px',
-            mx: 'auto',
-            px: { xs: 2, sm: 3 },
+            textAlign: 'center',
+            color: 'white',
+            px: 2,
           }}
         >
           <Typography
-            variant="h2"
+            variant={isMobile ? 'h4' : 'h2'}
             component="h1"
-            sx={{
-              color: 'white',
-              textAlign: 'center',
-              mb: 3,
-              fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
-              fontWeight: 700,
-              textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
-            }}
+            gutterBottom
+            sx={{ fontWeight: 'bold' }}
           >
-            Swap, Share, Sustain
+            Zero Waste Swap Platform
           </Typography>
-          <Typography
-            variant="h5"
-            sx={{
-              color: 'white',
-              textAlign: 'center',
-              mb: 4,
-              fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-              textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
-            }}
-          >
-            Join our community of eco-conscious individuals sharing and swapping items
+          <Typography variant="h6" sx={{ mb: 4 }}>
+            Give your items a second life and help reduce waste
           </Typography>
-          <Box sx={{ maxWidth: '600px', mx: 'auto' }}>
+          <Box sx={{ maxWidth: 600, mx: 'auto' }}>
             <SearchBar
               value={searchQuery}
               onChange={setSearchQuery}
               onSearch={handleSearch}
-              placeholder="Search for items to swap..."
-              fullWidth
+              placeholder="Search for items..."
             />
           </Box>
-        </Container>
+        </Box>
       </Box>
 
-      {/* Featured Listings */}
-      <Box sx={{ width: '100%', bgcolor: 'background.default' }}>
-        <Container 
-          maxWidth={false}
-          sx={{ 
-            py: { xs: 4, sm: 6 },
-            width: '100%',
-            maxWidth: '1200px',
-            mx: 'auto',
-            px: { xs: 2, sm: 3 },
-          }}
-        >
-          <Typography
-            variant="h4"
-            component="h2"
-            sx={{
-              mb: 4,
-              textAlign: 'center',
-              fontWeight: 600,
-            }}
+      <Container maxWidth="lg">
+        <Box sx={{ mb: 4 }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, newValue) => setActiveTab(newValue)}
+            centered
+            sx={{ mb: 3 }}
           >
-            Featured Items
-          </Typography>
-          <Grid container spacing={3}>
-            {featuredListings.map((listing) => (
-              <Grid item key={listing.id} xs={12} sm={6} md={4} lg={3}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 4,
-                      transition: 'all 0.2s ease-in-out',
-                    },
-                  }}
-                  onClick={() => handleListingClick(listing)}
-                >
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={listing.image}
-                    alt={listing.title}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography gutterBottom variant="h6" component="h3">
-                      {listing.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }}
-                    >
-                      {listing.description}
-                    </Typography>
-                  </CardContent>
-                  <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {listing.location}
-                    </Typography>
-                    <Box>
-                      <IconButton size="small">
-                        <FavoriteIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small">
-                        <ShareIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </CardActions>
-                </Card>
+            <Tab label="Recent Listings" />
+            <Tab label="Featured Items" />
+          </Tabs>
+
+          {activeTab === 0 && (
+            <>
+              <Grid container spacing={3}>
+                {recentListings.map((listing) => (
+                  <Grid item xs={12} sm={6} md={3} key={listing.id}>
+                    {renderListingCard(listing)}
+                  </Grid>
+                ))}
               </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
+              <Box sx={{ textAlign: 'center', mt: 4 }}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => navigate('/search')}
+                >
+                  View All Listings
+                </Button>
+              </Box>
+            </>
+          )}
+
+          {activeTab === 1 && (
+            <Grid container spacing={3}>
+              {featuredListings.map((listing) => (
+                <Grid item xs={12} sm={6} md={3} key={listing.id}>
+                  {renderListingCard(listing, true)}
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
+      </Container>
       <Footer />
-    </Box>
+    </>
   );
 };
 

@@ -21,12 +21,17 @@ import {
   ListItemIcon,
   ListItemText,
   CircularProgress,
+  Snackbar,
+  Alert,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
   Category as CategoryIcon,
   Share as ShareIcon,
   Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
   ArrowBack as ArrowBackIcon,
   ZoomIn as ZoomInIcon,
   Email as EmailIcon,
@@ -34,9 +39,13 @@ import {
   Person as PersonIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  WhatsApp as WhatsAppIcon,
+  Telegram as TelegramIcon,
+  Facebook as FacebookIcon,
 } from '@mui/icons-material';
 import Footer from '../components/Footer';
 import { useAuth } from '../hooks/useAuth';
+import { useFavorites } from '../hooks/useFavorites';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -46,9 +55,14 @@ const ListingDetails: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useAuth();
+  const { toggleFavorite, isFavorite } = useFavorites();
+  
   const [imageDialogOpen, setImageDialogOpen] = React.useState(false);
   const [contactDialogOpen, setContactDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [shareAnchorEl, setShareAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -70,6 +84,49 @@ const ListingDetails: React.FC = () => {
       </Container>
     );
   }
+
+  const handleFavoriteClick = async () => {
+    try {
+      await toggleFavorite(listing.id);
+      setSnackbarMessage(isFavorite(listing.id) ? 'Removed from favorites' : 'Added to favorites');
+      setSnackbarOpen(true);
+    } catch (err) {
+      setError('Failed to update favorites');
+    }
+  };
+
+  const handleShareClick = (event: React.MouseEvent<HTMLElement>) => {
+    setShareAnchorEl(event.currentTarget);
+  };
+
+  const handleShareClose = () => {
+    setShareAnchorEl(null);
+  };
+
+  const handleShare = (platform: string) => {
+    const listingUrl = `${window.location.origin}/listing/${listing.id}`;
+    const title = encodeURIComponent(listing.title);
+    const text = encodeURIComponent(`Check out this listing: ${listing.title}`);
+    
+    let shareUrl = '';
+    switch (platform) {
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${text}%20${listingUrl}`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/share/url?url=${listingUrl}&text=${text}`;
+        break;
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${listingUrl}`;
+        break;
+      case 'email':
+        shareUrl = `mailto:?subject=${title}&body=${text}%20${listingUrl}`;
+        break;
+    }
+    
+    window.open(shareUrl, '_blank');
+    handleShareClose();
+  };
 
   const handleContactClick = () => {
     setContactDialogOpen(true);
@@ -131,24 +188,41 @@ const ListingDetails: React.FC = () => {
           >
             Go Back
           </Button>
-          {isOwner && (
-            <Box>
-              <Button
-                startIcon={<EditIcon />}
-                onClick={handleEditClick}
-                sx={{ mr: 1 }}
-              >
-                Edit
-              </Button>
-              <Button
-                startIcon={<DeleteIcon />}
-                onClick={handleDeleteClick}
-                color="error"
-              >
-                Delete
-              </Button>
-            </Box>
-          )}
+          <Box>
+            <IconButton
+              onClick={handleFavoriteClick}
+              color="primary"
+              aria-label={isFavorite(listing.id) ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {isFavorite(listing.id) ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+            </IconButton>
+            <IconButton
+              onClick={handleShareClick}
+              color="primary"
+              aria-label="Share listing"
+            >
+              <ShareIcon />
+            </IconButton>
+            {isOwner && (
+              <>
+                <Button
+                  startIcon={<EditIcon />}
+                  onClick={handleEditClick}
+                  sx={{ ml: 1 }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  startIcon={<DeleteIcon />}
+                  onClick={handleDeleteClick}
+                  color="error"
+                  sx={{ ml: 1 }}
+                >
+                  Delete
+                </Button>
+              </>
+            )}
+          </Box>
         </Box>
 
         {error && (
@@ -208,14 +282,6 @@ const ListingDetails: React.FC = () => {
                 <Typography variant="h4" component="h1" gutterBottom>
                   {listing.title}
                 </Typography>
-                <Box>
-                  <IconButton>
-                    <FavoriteIcon />
-                  </IconButton>
-                  <IconButton>
-                    <ShareIcon />
-                  </IconButton>
-                </Box>
               </Box>
 
               <Box sx={{ mb: 3 }}>
@@ -342,6 +408,52 @@ const ListingDetails: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <Menu
+          anchorEl={shareAnchorEl}
+          open={Boolean(shareAnchorEl)}
+          onClose={handleShareClose}
+        >
+          <MenuItem onClick={() => handleShare('whatsapp')}>
+            <ListItemIcon>
+              <WhatsAppIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>WhatsApp</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => handleShare('telegram')}>
+            <ListItemIcon>
+              <TelegramIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Telegram</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => handleShare('facebook')}>
+            <ListItemIcon>
+              <FacebookIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Facebook</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => handleShare('email')}>
+            <ListItemIcon>
+              <EmailIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Email</ListItemText>
+          </MenuItem>
+        </Menu>
+
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={3000}
+          onClose={() => setSnackbarOpen(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert 
+            onClose={() => setSnackbarOpen(false)} 
+            severity="success" 
+            sx={{ width: '100%' }}
+          >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
       </Container>
       <Footer />
     </Box>

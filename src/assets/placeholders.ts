@@ -32,3 +32,5 @@ export const artSuppliesImage = 'https://m.media-amazon.com/images/I/81qQrGur9QL
 export const deskLampImage = 'https://i5.walmartimages.com/seo/Home-Decorative-Mainstays-LED-Architect-Desk-Lamp-Black-Metal-Powder-Coating-Finish-for-All-Ages_2416f3cf-e5d2-4e9d-9612-d2ad61a014e0.ce7d149337e1d115ba4a61a2c3a11904.jpeg';
 
 export const laptopImage = 'https://cdncloudcart.com/402/products/images/148284/laptop-apple-macbook-pro-16a-m3-pro-512gb-space-black-mrw13--16-20--18--512gb-ssd--apple-m3-pro-12-core--apple-m3-pro-18-core-gpu-6542458122175_800x800.png?1698842017';
+
+export const nikeShoesImage = 'https://lotus-sport.bg/image/cache/catalog/212/NIKE/3/CD4373-004-mazhki-maratonki-nike-react-vision-black1-min-850x850.jpg';

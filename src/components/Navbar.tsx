@@ -42,11 +42,12 @@ const Navbar = () => {
   const userMenuItems = user ? [
     { title: 'Profile', path: '/profile' },
     { title: 'My Listings', path: '/my-listings' },
+    { title: 'Favorites', path: '/favorites' },
     { title: 'Settings', path: '/settings' },
     { title: 'Sign Out', action: logout },
   ] : [
-    { title: 'Sign In', path: '/signin' },
-    { title: 'Sign Up', path: '/signup' },
+    { title: 'Sign In', path: '/login' },
+    { title: 'Sign Up', path: '/register' },
   ];
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
