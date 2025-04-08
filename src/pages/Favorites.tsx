@@ -144,7 +144,7 @@ const Favorites = () => {
         setFavoriteListings(listings);
       } catch (err) {
         console.error('Error fetching favorite listings:', err);
-        setError('Failed to load favorite listings');
+        setError('Грешка при зареждане на любими обяви');
       } finally {
         setLoading(false);
       }
@@ -166,7 +166,7 @@ const Favorites = () => {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="info">
-          Please sign in to view your favorite listings.
+          Моля, влезте в системата, за да видите вашите любими обяви.
         </Alert>
       </Container>
     );
@@ -183,7 +183,7 @@ const Favorites = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        My Favorites
+        Моите любими
       </Typography>
 
       {error && (
@@ -194,14 +194,14 @@ const Favorites = () => {
 
       {favoriteListings.length === 0 ? (
         <Alert severity="info">
-          You haven't added any listings to your favorites yet.
+          Все още нямате добавени обяви в любими.
         </Alert>
       ) : (
         <Grid container spacing={3}>
           {favoriteListings.map((listing) => (
             <Grid item xs={12} sm={6} md={4} key={listing.id}>
-              <Card 
-                sx={{ 
+              <Card
+                sx={{
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
@@ -218,20 +218,19 @@ const Favorites = () => {
                   <CardMedia
                     component="img"
                     height="200"
-                    image={listing.images[0] || '/placeholder-image.jpg'}
+                    image={listing.images?.[0] || '/placeholder-image.jpg'}
                     alt={listing.title}
                     sx={{ objectFit: 'cover' }}
                   />
                   <IconButton
-                    size="small"
                     sx={{
                       position: 'absolute',
                       top: 8,
                       right: 8,
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      },
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                      }
                     }}
                     onClick={(e) => handleRemoveFavorite(e, listing.id)}
                   >
@@ -239,23 +238,23 @@ const Favorites = () => {
                   </IconButton>
                 </Box>
                 <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" component="h2" gutterBottom>
+                  <Typography gutterBottom variant="h6" component="h2">
                     {listing.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {listing.description}
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <LocationIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {typeof listing.location === 'string' ? listing.location : listing.location.address}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <TimeIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDistanceToNow(listing.createdAt, { addSuffix: true })}
-                    </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                    <Chip
+                      icon={<LocationIcon />}
+                      label={listing.location?.address || 'Местоположението не е посочено'}
+                      size="small"
+                    />
+                    <Chip
+                      icon={<TimeIcon />}
+                      label={formatDistanceToNow(listing.createdAt, { addSuffix: true })}
+                      size="small"
+                    />
                   </Box>
                 </CardContent>
               </Card>
