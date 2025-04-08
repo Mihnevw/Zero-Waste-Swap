@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Container,
@@ -21,8 +21,9 @@ import {
   Lock as LockIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import AnimatedPage from '../components/AnimatedPage';
 
-const Login = () => {
+const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -55,105 +56,84 @@ const Login = () => {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper
-          elevation={3}
-          sx={{
-            padding: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%',
-          }}
-        >
-          <Typography component="h1" variant="h5">
-            Login
-          </Typography>
-          {error && (
-            <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
-              {error}
-            </Alert>
-          )}
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={!!error && !validateEmail(email)}
-              helperText={!!error && !validateEmail(email) ? 'Please enter a valid email address' : ''}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockIcon />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Login'}
-            </Button>
-            <Grid container justifyContent="flex-end">
-              <Grid item>
-                <Link component={RouterLink} to="/register" variant="body2">
-                  Don't have an account? Register
-                </Link>
-              </Grid>
-            </Grid>
-          </Box>
-        </Paper>
+    <AnimatedPage animation="fade">
+      <Box sx={{ pt: 8 }}>
+        <Container maxWidth="sm">
+          <AnimatedPage animation="slide" delay={0.2}>
+            <Box sx={{ mb: 4, textAlign: 'center' }}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                Вход
+              </Typography>
+              <Typography variant="body1" color="text.secondary" paragraph>
+                Влезте в системата, за да продължите
+              </Typography>
+            </Box>
+          </AnimatedPage>
+
+          <AnimatedPage animation="scale" delay={0.4}>
+            <Paper sx={{ p: 4 }}>
+              {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
+              )}
+              <form onSubmit={handleSubmit}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Имейл"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      error={!!error && !validateEmail(email)}
+                      helperText={!!error && !validateEmail(email) ? 'Моля, въведете валиден имейл адрес' : ''}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Парола"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      error={!!error}
+                      helperText={error}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <AnimatedPage animation="slide" delay={0.6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          fullWidth
+                          disabled={loading}
+                        >
+                          {loading ? <CircularProgress size={24} /> : 'Вход'}
+                        </Button>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Link component={RouterLink} to="/register" variant="body2">
+                            Нямате акаунт? Регистрирайте се
+                          </Link>
+                          <Link component={RouterLink} to="/forgot-password" variant="body2">
+                            Забравена парола?
+                          </Link>
+                        </Box>
+                      </Box>
+                    </AnimatedPage>
+                  </Grid>
+                </Grid>
+              </form>
+            </Paper>
+          </AnimatedPage>
+        </Container>
       </Box>
-    </Container>
+    </AnimatedPage>
   );
 };
 
