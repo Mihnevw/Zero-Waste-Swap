@@ -47,7 +47,7 @@ const ListingCard = ({ listing }: ListingCardProps) => {
           <Chip label={listing.condition} size="small" />
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          Posted by {listing.userName}
+          Публикувано от {listing.userName}
         </Typography>
       </CardContent>
     </Card>
