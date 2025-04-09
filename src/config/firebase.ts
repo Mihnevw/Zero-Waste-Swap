@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager, enableMultiTabIndexedDbPersistence, Firestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 
@@ -63,15 +63,15 @@ try {
   });
 
   // Enable multi-tab persistence
-  enableMultiTabIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('The current browser does not support persistence.');
-    } else {
-      console.error('Error enabling persistence:', err);
-    }
-  });
+  // enableMultiTabIndexedDbPersistence(db).catch((err) => {
+  //   if (err.code === 'failed-precondition') {
+  //     console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+  //   } else if (err.code === 'unimplemented') {
+  //     console.warn('The current browser does not support persistence.');
+  //   } else {
+  //     console.error('Error enabling persistence:', err);
+  //   }
+  // });
 
   // Test Firestore connection
   console.log('Firestore initialized successfully');
