@@ -14,7 +14,8 @@ import {
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
-
+import AnimatedPage from '../components/AnimatedPage';
+import Footer from '../components/Footer';
 const Contact = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -89,6 +90,7 @@ const Contact = () => {
   };
 
   return (
+    <AnimatedPage>
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
         <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
@@ -179,6 +181,8 @@ const Contact = () => {
         </Paper>
       </Box>
     </Container>
+    <Footer />
+    </AnimatedPage>
   );
 };
 

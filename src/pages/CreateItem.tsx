@@ -123,7 +123,7 @@ const CreateItem: React.FC = () => {
         userEmail: user.email,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        status: 'available',
+        status: 'active',
       };
 
       // Add item to Firestore
