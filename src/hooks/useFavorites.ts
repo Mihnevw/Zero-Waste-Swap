@@ -28,14 +28,11 @@ export const useFavorites = () => {
 
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
-        console.log('Favorites snapshot:', snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         const favoriteIds = snapshot.docs.map(doc => String(doc.data().listingId));
-        console.log('Favorite IDs:', favoriteIds);
         setFavorites(favoriteIds);
         setLoading(false);
       },
       (err) => {
-        console.error('Error fetching favorites:', err);
         setError('Грешка при зареждане на любими');
         setLoading(false);
       }
@@ -55,16 +52,8 @@ export const useFavorites = () => {
       const favoriteId = `${user.uid}_${listingIdStr}`;
       const favoriteRef = doc(db, 'favorites', favoriteId);
       
-      console.log('Toggling favorite:', { 
-        listingId: listingIdStr, 
-        favoriteId, 
-        exists: favorites.includes(listingIdStr),
-        isDemo: listingIdStr.startsWith('demo_')
-      });
-
       if (favorites.includes(listingIdStr)) {
         await deleteDoc(favoriteRef);
-        console.log('Favorite deleted:', favoriteId);
       } else {
         // For demo listings, we don't need to check if the listing exists
         if (!listingIdStr.startsWith('demo_')) {
@@ -84,12 +73,9 @@ export const useFavorites = () => {
           createdAt: serverTimestamp(),
           id: favoriteId
         };
-        console.log('Creating favorite:', favoriteData);
         await setDoc(favoriteRef, favoriteData, { merge: true });
-        console.log('Favorite created:', favoriteId);
       }
     } catch (err) {
-      console.error('Error toggling favorite:', err);
       setError('Грешка при обновяване на любими');
     }
   };

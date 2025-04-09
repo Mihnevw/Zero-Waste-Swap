@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -17,6 +18,7 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -112,6 +114,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      setError(null);
+      await sendPasswordResetEmail(auth, email);
+    } catch (err: any) {
+      let errorMessage = 'Грешка при изпращане на имейл за възстановяване на паролата.';
+      
+      switch (err.code) {
+        case 'auth/invalid-email':
+          errorMessage = 'Невалиден имейл адрес';
+          break;
+        case 'auth/user-not-found':
+          errorMessage = 'Няма акаунт с този имейл';
+          break;
+        default:
+          errorMessage = err.message || errorMessage;
+      }
+
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -120,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     clearError,
+    resetPassword,
   };
 
   return (
