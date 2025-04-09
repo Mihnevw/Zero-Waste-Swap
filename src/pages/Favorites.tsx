@@ -102,7 +102,7 @@ const Favorites = () => {
                   createdAt: new Date(),
                   updatedAt: new Date(),
                   condition: 'good',
-                  status: 'available' as const
+                  status: 'active' as const
                 };
               }
               return null;
@@ -160,6 +160,22 @@ const Favorites = () => {
   const handleRemoveFavorite = async (e: React.MouseEvent, listingId: string) => {
     e.stopPropagation();
     await toggleFavorite(listingId);
+  };
+
+  const formatDate = (date: any) => {
+    if (!date) return 'неизвестна дата';
+    
+    try {
+      if (typeof date === 'string') {
+        return formatDistanceToNow(new Date(date), { addSuffix: true });
+      } else if (typeof date === 'object' && 'seconds' in date) {
+        return formatDistanceToNow(new Date(date.seconds * 1000), { addSuffix: true });
+      }
+      return 'неизвестна дата';
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'неизвестна дата';
+    }
   };
 
   if (!user) {
@@ -250,11 +266,12 @@ const Favorites = () => {
                       label={listing.location?.address || 'Местоположението не е посочено'}
                       size="small"
                     />
-                    <Chip
-                      icon={<TimeIcon />}
-                      label={formatDistanceToNow(listing.createdAt, { addSuffix: true })}
-                      size="small"
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                      <TimeIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {formatDate(listing.createdAt)}
+                      </Typography>
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>

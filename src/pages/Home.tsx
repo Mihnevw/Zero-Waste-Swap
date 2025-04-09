@@ -153,7 +153,7 @@ const Home: React.FC = () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       condition: 'good',
-      status: 'available' as const
+      status: 'active' as const
     } : listing;
 
     navigate(`/listing/${listingId}`, {
@@ -455,6 +455,7 @@ const Home: React.FC = () => {
                 value={searchQuery}
                 onChange={handleSearchQueryChange}
                 onSearch={handleSearch}
+                placeholder="Намерете подходящият за вас продукт..."
               />
             </AnimatedPage>
           </Container>

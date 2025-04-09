@@ -87,21 +87,23 @@ const Search = () => {
     'Други'
   ];
 
-  // Map for converting between English and Bulgarian categories
+  // Category mapping
   const categoryMap: { [key: string]: string } = {
-    'electronics': 'Електроника',
+    'all': 'all',
     'clothing': 'Дрехи',
+    'electronics': 'Електроника',
     'books': 'Книги',
     'furniture': 'Мебели',
     'sports': 'Спортни стоки',
     'other': 'Други',
-    'Електроника': 'Електроника',
+    // Reverse mapping
     'Дрехи': 'Дрехи',
+    'Електроника': 'Електроника',
     'Книги': 'Книги',
     'Мебели': 'Мебели',
     'Спортни стоки': 'Спортни стоки',
     'Други': 'Други'
-  };
+  } as const;
 
   // Get unique categories from listings
   const categories = [...new Set([...defaultCategories, ...listings.map(listing => listing.category)])];
@@ -110,7 +112,8 @@ const Search = () => {
   useEffect(() => {
     const category = searchParams.get('category');
     if (category) {
-      setCategoryFilter(categoryMap[category] || 'all');
+      // Map English category to Bulgarian
+      setCategoryFilter(categoryMap[category.toLowerCase()] || 'all');
     }
   }, [searchParams]);
 
@@ -324,6 +327,22 @@ const Search = () => {
     }
   };
 
+  const formatDate = (date: any) => {
+    if (!date) return 'неизвестна дата';
+    
+    try {
+      if (typeof date === 'string') {
+        return formatDistanceToNow(new Date(date), { addSuffix: true });
+      } else if (typeof date === 'object' && 'seconds' in date) {
+        return formatDistanceToNow(new Date(date.seconds * 1000), { addSuffix: true });
+      }
+      return 'неизвестна дата';
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'неизвестна дата';
+    }
+  };
+
   return (
     <AnimatedPage animation="fade">
       <Box sx={{ pt: 8 }}>
@@ -360,7 +379,7 @@ const Search = () => {
                 <Box sx={{ flexGrow: 1 }}>
                   <SearchBar
                     variant="search"
-                    placeholder="Търсене..."
+                    placeholder="Намерете подходящият за вас продукт..."
                     value={searchQuery}
                     onChange={handleSearch}
                   />
@@ -463,7 +482,7 @@ const Search = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                           <TimeIcon fontSize="small" color="action" />
                           <Typography variant="body2" color="text.secondary">
-                            {formatDistanceToNow(listing.createdAt, { addSuffix: true })}
+                            {formatDate(listing.createdAt)}
                           </Typography>
                         </Box>
                       </CardContent>
