@@ -56,12 +56,28 @@ const EditListing = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<Partial<Listing>>({
+  const [formData, setFormData] = useState<Listing>({
+    id: '',
     title: '',
     description: '',
     category: '',
-    condition: 'добро',
+    condition: '',
+    status: '',
     images: [],
+    location: {
+      latitude: 0,
+      longitude: 0,
+      address: '',
+      region: ''
+    },
+    userId: '',
+    userName: '',
+    userEmail: '',
+    userPhone: '',
+    firstName: '',
+    lastName: '',
+    createdAt: '',
+    updatedAt: ''
   });
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -205,6 +221,7 @@ const EditListing = () => {
       await updateDoc(docRef, {
         ...formData,
         images: updatedImages,
+        status: 'active',
         updatedAt: new Date(),
       });
       
@@ -287,6 +304,66 @@ const EditListing = () => {
                   </Grid>
 
                   <Grid item xs={12}>
+                    <Box sx={{ mb: 2 }}>
+                      <Button
+                        component="label"
+                        variant="outlined"
+                        startIcon={<CloudUploadIcon />}
+                        fullWidth
+                      >
+                        Качи снимки
+                        <input
+                          type="file"
+                          hidden
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                        />
+                      </Button>
+                    </Box>
+                    {imagePreviews.length > 0 && (
+                      <Grid container spacing={2}>
+                        {imagePreviews.map((preview, index) => (
+                          <Grid item xs={6} sm={4} md={3} key={index}>
+                            <Box sx={{ position: 'relative' }}>
+                              <img
+                                src={preview}
+                                alt={`Preview ${index + 1}`}
+                                style={{
+                                  width: '100%',
+                                  height: '150px',
+                                  objectFit: 'cover',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                              <IconButton
+                                size="small"
+                                sx={{
+                                  position: 'absolute',
+                                  top: 8,
+                                  right: 8,
+                                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.7)'
+                                  }
+                                }}
+                                onClick={() => handleRemoveImage(index, true)}
+                              >
+                                <DeleteIcon sx={{ color: 'white' }} />
+                              </IconButton>
+                            </Box>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    )}
+                    {!!error && (!formData.images || formData.images.length === 0) && newImages.length === 0 && (
+                      <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                        Необходима е поне една снимка
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={12}>
                     <TextField
                       fullWidth
                       label="Описание"
@@ -325,7 +402,7 @@ const EditListing = () => {
                       <InputLabel>Състояние</InputLabel>
                       <Select
                         value={formData.condition}
-                        onChange={(e) => setFormData({ ...formData, condition: e.target.value as typeof conditions[number] })}
+                        onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                         label="Състояние"
                       >
                         {conditions.map((condition) => (
@@ -341,99 +418,90 @@ const EditListing = () => {
                   </Grid>
 
                   <Grid item xs={12}>
-                    <AnimatedPage animation="slide" delay={0.6}>
-                      <Box sx={{ mb: 2 }}>
-                        <Button
-                          component="label"
-                          variant="outlined"
-                          startIcon={<CloudUploadIcon />}
-                          fullWidth
-                        >
-                          Качи нови снимки
-                          <input
-                            type="file"
-                            hidden
-                            multiple
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                          />
-                        </Button>
-                      </Box>
-                      {imagePreviews.length > 0 && (
-                        <Grid container spacing={2}>
-                          {imagePreviews.map((preview, index) => (
-                            <Grid item xs={6} sm={4} md={3} key={index}>
-                              <Box sx={{ position: 'relative' }}>
-                                <img
-                                  src={preview}
-                                  alt={`Preview ${index + 1}`}
-                                  style={{
-                                    width: '100%',
-                                    height: '150px',
-                                    objectFit: 'cover',
-                                    borderRadius: '4px'
-                                  }}
-                                />
-                                <IconButton
-                                  size="small"
-                                  sx={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(0, 0, 0, 0.7)'
-                                    }
-                                  }}
-                                  onClick={() => handleRemoveImage(index, index >= (formData.images?.length || 0))}
-                                >
-                                  <DeleteIcon sx={{ color: 'white' }} />
-                                </IconButton>
-                              </Box>
-                            </Grid>
-                          ))}
-                        </Grid>
-                      )}
-                      {!!error && (!formData.images || formData.images.length === 0) && newImages.length === 0 && (
-                        <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                          Необходима е поне една снимка
-                        </Typography>
-                      )}
-                    </AnimatedPage>
+                    <TextField
+                      label="Град"
+                      value={formData.location?.address}
+                      onChange={(e) => setFormData({ ...formData, location: { ...formData.location, address: e.target.value } })}
+                      fullWidth
+                      required
+                      sx={{ mb: 2 }}
+                    />
                   </Grid>
 
                   <Grid item xs={12}>
-                    <AnimatedPage animation="slide" delay={0.8}>
-                      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          onClick={() => setDeleteDialogOpen(true)}
-                        >
-                          Изтрий обява
-                        </Button>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <Button
-                            variant="outlined"
-                            onClick={() => navigate(-1)}
-                          >
-                            Отказ
-                          </Button>
-                          <Button
-                            type="submit"
-                            variant="contained"
-                            color="primary"
-                            disabled={loading || uploadingImages}
-                          >
-                            {loading || uploadingImages ? (
-                              <CircularProgress size={24} />
-                            ) : (
-                              'Запази промените'
-                            )}
-                          </Button>
-                        </Box>
-                      </Box>
-                    </AnimatedPage>
+                    <TextField
+                      label="Регион"
+                      value={formData.location?.region}
+                      onChange={(e) => setFormData({ ...formData, location: { ...formData.location, region: e.target.value } })}
+                      fullWidth
+                      required
+                      sx={{ mb: 2 }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Име"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      required
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Фамилия"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      required
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Имейл адрес"
+                      value={formData.userEmail}
+                      onChange={(e) => setFormData({ ...formData, userEmail: e.target.value })}
+                      required
+                      type="email"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Телефонен номер"
+                      value={formData.userPhone}
+                      onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })}
+                      placeholder="+359 888 123 456"
+                      helperText="По избор - за по-лесна комуникация с купувачите"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => navigate('/')}
+                      >
+                        Отказ
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        disabled={loading || uploadingImages}
+                      >
+                        {loading || uploadingImages ? (
+                          <CircularProgress size={24} />
+                        ) : (
+                          'Запази промените'
+                        )}
+                      </Button>
+                    </Box>
                   </Grid>
                 </Grid>
               </form>

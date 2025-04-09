@@ -19,7 +19,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -48,14 +48,19 @@ const CreateListing: React.FC = () => {
     title: '',
     description: '',
     category: '',
-    condition: 'добро',
+    condition: '',
     images: [] as File[],
     imagePreviews: [] as string[],
     location: {
       latitude: 0,
       longitude: 0,
-      address: ''
-    }
+      address: '',
+      region: ''
+    },
+    userPhone: '',
+    firstName: '',
+    lastName: '',
+    email: ''
   });
 
   useEffect(() => {
@@ -65,6 +70,13 @@ const CreateListing: React.FC = () => {
   }, [authLoading, user, navigate]);
 
   const validateForm = () => {
+    console.log('Validating form...');
+    console.log('Title:', formData.title);
+    console.log('Description:', formData.description);
+    console.log('Category:', formData.category);
+    console.log('Condition:', formData.condition);
+    console.log('Images:', formData.images.length);
+
     if (!formData.title.trim()) {
       setError('Заглавието е задължително');
       return false;
@@ -158,17 +170,13 @@ const CreateListing: React.FC = () => {
 
       // Create listing document
       const listingData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category,
-        condition: formData.condition,
+        ...formData,
         images: imageUrls,
-        location: formData.location,
-        userEmail: user.email,
-        userName: user.displayName || 'Анонимен потребител',
-        userId: user.uid,
+        status: 'active',
         createdAt: serverTimestamp(),
-        status: 'налично'
+        userId: user.uid,
+        userName: user.displayName || 'Anonymous',
+        userEmail: user.email,
       };
 
       const docRef = await addDoc(collection(db, 'listings'), listingData);
@@ -223,60 +231,6 @@ const CreateListing: React.FC = () => {
                       error={!!error && !formData.title.trim()}
                       helperText={!!error && !formData.title.trim() ? 'Заглавието е задължително' : ''}
                     />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Описание"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      multiline
-                      rows={4}
-                      required
-                      error={!!error && !formData.description.trim()}
-                      helperText={!!error && !formData.description.trim() ? 'Описанието е задължително' : ''}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth required error={!!error && !formData.category}>
-                      <InputLabel>Категория</InputLabel>
-                      <Select
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        label="Категория"
-                      >
-                        {categories.map((category) => (
-                          <MenuItem key={category} value={category}>
-                            {category}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {error && !formData.category && (
-                        <FormHelperText>{error}</FormHelperText>
-                      )}
-                    </FormControl>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth required error={!!error && !formData.condition}>
-                      <InputLabel>Състояние</InputLabel>
-                      <Select
-                        value={formData.condition}
-                        onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                        label="Състояние"
-                      >
-                        {conditions.map((condition) => (
-                          <MenuItem key={condition} value={condition}>
-                            {condition}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {error && !formData.condition && (
-                        <FormHelperText>{error}</FormHelperText>
-                      )}
-                    </FormControl>
                   </Grid>
 
                   <Grid item xs={12}>
@@ -342,28 +296,148 @@ const CreateListing: React.FC = () => {
                   </Grid>
 
                   <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Описание"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      multiline
+                      rows={4}
+                      required
+                      error={!!error && !formData.description.trim()}
+                      helperText={!!error && !formData.description.trim() ? 'Описанието е задължително' : ''}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required error={!!error && !formData.category}>
+                      <InputLabel>Категория</InputLabel>
+                      <Select
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        label="Категория"
+                      >
+                        {categories.map((category) => (
+                          <MenuItem key={category} value={category}>
+                            {category}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {error && !formData.category && (
+                        <FormHelperText>{error}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required error={!!error && !formData.condition}>
+                      <InputLabel>Състояние</InputLabel>
+                      <Select
+                        value={formData.condition}
+                        onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                        label="Състояние"
+                      >
+                        {conditions.map((condition) => (
+                          <MenuItem key={condition} value={condition}>
+                            {condition}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {error && !formData.condition && (
+                        <FormHelperText>{error}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12}>
                     <AnimatedPage animation="slide" delay={0.8}>
-                      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                        <Button
-                          variant="outlined"
-                          onClick={() => navigate('/')}
-                        >
-                          Отказ
-                        </Button>
-                        <Button
-                          type="submit"
-                          variant="contained"
-                          color="primary"
-                          disabled={loading || uploadingImages}
-                        >
-                          {loading || uploadingImages ? (
-                            <CircularProgress size={24} />
-                          ) : (
-                            'Публикувай'
-                          )}
-                        </Button>
-                      </Box>
+                      <TextField
+                        label="Град"
+                        value={formData.location.address}
+                        onChange={(e) => setFormData({ ...formData, location: { ...formData.location, address: e.target.value } })}
+                        fullWidth
+                        required
+                        sx={{ mb: 2 }}
+                      />
                     </AnimatedPage>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <AnimatedPage animation="slide" delay={0.9}>
+                      <TextField
+                        label="Регион"
+                        value={formData.location.region}
+                        onChange={(e) => setFormData({ ...formData, location: { ...formData.location, region: e.target.value } })}
+                        fullWidth
+                        required
+                        sx={{ mb: 2 }}
+                      />
+                    </AnimatedPage>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Име"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      required
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Фамилия"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      required
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Имейл адрес"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      type="email"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Телефонен номер"
+                      value={formData.userPhone}
+                      onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })}
+                      placeholder="+359 888 123 456"
+                      helperText="По избор - за по-лесна комуникация с купувачите"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => navigate('/')}
+                      >
+                        Отказ
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        disabled={loading || uploadingImages}
+                      >
+                        {loading || uploadingImages ? (
+                          <CircularProgress size={24} />
+                        ) : (
+                          'Публикувай'
+                        )}
+                      </Button>
+                    </Box>
                   </Grid>
                 </Grid>
               </form>

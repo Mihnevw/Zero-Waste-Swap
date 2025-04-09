@@ -24,6 +24,9 @@ import { db } from '../config/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import AnimatedPage from '../components/AnimatedPage';
 import { useTheme } from '@mui/material/styles';
+import { formatDistanceToNow } from 'date-fns';
+import { bg } from 'date-fns/locale';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 const MyListings: React.FC = () => {
   const navigate = useNavigate();
@@ -43,7 +46,8 @@ const MyListings: React.FC = () => {
       try {
         const q = query(
           collection(db, 'listings'),
-          where('userId', '==', user.uid)
+          where('userId', '==', user.uid),
+          where('status', '==', 'active')
         );
         const querySnapshot = await getDocs(q);
         const listingsData = querySnapshot.docs.map(doc => ({
@@ -69,6 +73,33 @@ const MyListings: React.FC = () => {
   const handleDelete = async (listingId: string) => {
     // Implement delete functionality
     console.log('Delete listing:', listingId);
+  };
+
+  const formatDate = (date: any) => {
+    if (!date) return 'неизвестна дата';
+    
+    try {
+      let dateObj: Date;
+      
+      if (typeof date === 'string') {
+        dateObj = new Date(date);
+      } else if (typeof date === 'object' && 'seconds' in date) {
+        dateObj = new Date(date.seconds * 1000);
+      } else if (date instanceof Date) {
+        dateObj = date;
+      } else {
+        return 'неизвестна дата';
+      }
+
+      if (isNaN(dateObj.getTime())) {
+        return 'неизвестна дата';
+      }
+
+      return formatDistanceToNow(dateObj, { addSuffix: true, locale: bg });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'неизвестна дата';
+    }
   };
 
   if (loading) {
@@ -200,6 +231,17 @@ const MyListings: React.FC = () => {
                         >
                           {listing.description}
                         </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                          <AccessTimeIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="text.secondary">
+                            {formatDate(listing.createdAt)}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {listing.city}, {listing.region}
+                          </Typography>
+                        </Box>
                       </CardContent>
                       <CardActions sx={{ justifyContent: 'flex-end', p: 1 }}>
                         <IconButton
