@@ -38,7 +38,11 @@ const Profile: React.FC = () => {
     return null;
   }
 
-  const userListings = listings.filter((listing) => listing.userId === user.uid);
+  const userListings = listings.filter((listing) => {
+    console.log('Listing:', listing);
+    return listing.userId === user.uid && listing.status === 'active';
+  });
+  const activeListingsCount = userListings.length;
 
   // Get first letter of display name or email for avatar
   const getAvatarText = () => {
@@ -88,6 +92,9 @@ const Profile: React.FC = () => {
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {user?.email}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {activeListingsCount} активни обяви
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2 }}>
