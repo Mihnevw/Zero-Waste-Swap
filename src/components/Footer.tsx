@@ -5,13 +5,8 @@ import {
   Grid,
   Typography,
   Link,
-  IconButton,
   Divider,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
-import FacebookIcon from '@mui/icons-material/Facebook';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -23,9 +18,6 @@ interface Category {
 }
 
 const Footer: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   const quickLinks = [
     { title: 'Начало', path: '/' },
     { title: 'За нас', path: '/about' },

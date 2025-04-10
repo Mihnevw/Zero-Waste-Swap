@@ -12,24 +12,17 @@ import {
   CardMedia,
   CardActions,
   Chip,
-  Paper,
   IconButton,
-  Divider,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
   useTheme,
-  useMediaQuery,
-  Tooltip,
-  Badge,
   Snackbar
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
   Category as CategoryIcon,
-  Sort as SortIcon,
-  FilterList as FilterIcon,
   AccessTime as TimeIcon,
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon
@@ -65,13 +58,11 @@ const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [sortBy, setSortBy] = useState('relevance');
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'all');
   const { toggleFavorite, isFavorite } = useFavorites();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -205,24 +196,7 @@ const Search = () => {
           });
 
           // Apply sorting
-          switch (sortBy) {
-            case 'newest':
-              sortedResults.sort((a, b) => b.createdAt - a.createdAt);
-              break;
-            case 'oldest':
-              sortedResults.sort((a, b) => a.createdAt - b.createdAt);
-              break;
-            case 'relevance':
-            default:
-              if (searchText.trim()) {
-                sortedResults.sort((a, b) => {
-                  if (b.score !== a.score) return b.score - a.score;
-                  return b.createdAt - a.createdAt;
-                });
-              } else {
-                sortedResults.sort((a, b) => b.createdAt - a.createdAt);
-              }
-          }
+          sortedResults.sort((a, b) => b.createdAt - a.createdAt);
 
           setListings(sortedResults.map(({ score, ...listing }) => listing));
           setLoading(false);
@@ -241,7 +215,7 @@ const Search = () => {
       setLoading(false);
       return () => {};
     }
-  }, [categoryFilter, sortBy]);
+  }, [categoryFilter]);
 
   const debouncedSearch = useCallback(
     debounce((query: string) => {

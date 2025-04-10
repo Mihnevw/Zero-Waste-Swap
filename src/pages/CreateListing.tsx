@@ -19,7 +19,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
-import { addDoc, collection, serverTimestamp, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -104,7 +104,7 @@ const CreateListing: React.FC = () => {
     if (e.target.files && e.target.files.length > 0) {
       const newImages = Array.from(e.target.files);
       const newPreviews = newImages.map(file => URL.createObjectURL(file));
-      
+
       setFormData(prev => ({
         ...prev,
         images: [...prev.images, ...newImages],
@@ -123,7 +123,7 @@ const CreateListing: React.FC = () => {
 
   const uploadImages = async (files: File[]): Promise<string[]> => {
     if (!user) return [];
-    
+
     try {
       setUploadingImages(true);
       const uploadPromises = files.map(async (file) => {
@@ -132,11 +132,11 @@ const CreateListing: React.FC = () => {
         const filename = `${timestamp}-${safeFileName}`;
         const storagePath = `listings/${user.uid}/${filename}`;
         const storageRef = ref(storage, storagePath);
-        
+
         const snapshot = await uploadBytes(storageRef, file);
         return await getDownloadURL(snapshot.ref);
       });
-      
+
       return await Promise.all(uploadPromises);
     } catch (err) {
       throw new Error('Грешка при качване на снимките');
@@ -148,7 +148,7 @@ const CreateListing: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!validateForm()) {
       return;
     }
@@ -181,10 +181,10 @@ const CreateListing: React.FC = () => {
 
       const docRef = await addDoc(collection(db, 'listings'), listingData);
       setSuccess(true);
-      
+
       // Wait for the listing to be fully saved and indexed
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Navigate to the listing details page
       navigate(`/listing/${docRef.id}`);
     } catch (error: any) {

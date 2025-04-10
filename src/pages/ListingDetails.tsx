@@ -14,26 +14,16 @@ import {
   DialogTitle,
   DialogActions,
   useTheme,
-  useMediaQuery,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   CircularProgress,
-  Snackbar,
   Alert,
-  Menu,
-  MenuItem,
   Card,
   CardMedia,
   CardContent,
   Avatar,
+  Divider,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
-  Category as CategoryIcon,
-  Share as ShareIcon,
   ArrowBack as ArrowBackIcon,
   ZoomIn as ZoomInIcon,
   Email as EmailIcon,
@@ -41,23 +31,15 @@ import {
   Person as PersonIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  WhatsApp as WhatsAppIcon,
-  Telegram as TelegramIcon,
-  Facebook as FacebookIcon,
-  AccessTime as TimeIcon,
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
   Close as CloseIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
-import Footer from '../components/Footer';
 import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import AnimatedPage from '../components/AnimatedPage';
-import { formatDistanceToNow } from 'date-fns';
 import { useFavorites } from '../hooks/useFavorites';
 import { Listing } from '../types/listing';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -67,20 +49,14 @@ const ListingDetails: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useAuth();
-  const { favorites, toggleFavorite, isFavorite: checkIsFavorite } = useFavorites();
+  const { favorites, isFavorite: checkIsFavorite } = useFavorites();
   
   const [imageDialogOpen, setImageDialogOpen] = React.useState(false);
-  const [contactDialogOpen, setContactDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [shareAnchorEl, setShareAnchorEl] = React.useState<null | HTMLElement>(null);
-  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
-  const [snackbarMessage, setSnackbarMessage] = React.useState('');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [listing, setListing] = React.useState<Listing | null>(null);
-  const [isFavorite, setIsFavorite] = React.useState(false);
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [showPhone, setShowPhone] = useState(false);
   const [otherListings, setOtherListings] = useState<Listing[]>([]);
@@ -103,9 +79,6 @@ const ListingDetails: React.FC = () => {
         }
         const listingData = { id: listingDoc.id, ...listingDoc.data() } as Listing;
         setListing(listingData);
-        if (listingDoc.id) {
-          setIsFavorite(checkIsFavorite(listingDoc.id));
-        }
 
         // Fetch other listings from the same user
         if (listingData.userId) {
@@ -140,45 +113,9 @@ const ListingDetails: React.FC = () => {
     }
   }, [id, location.state, favorites, checkIsFavorite]);
 
-  const handleShareClick = (event: React.MouseEvent<HTMLElement>) => {
-    setShareAnchorEl(event.currentTarget);
-  };
-
-  const handleShareClose = () => {
-    setShareAnchorEl(null);
-  };
-
-  const handleShare = async () => {
-    if (!listing) return;
-    
-    try {
-      await navigator.share({
-        title: listing.title,
-        text: listing.description,
-        url: window.location.href,
-      });
-    } catch (err) {
-      // Share API not supported or user cancelled
-      console.log('Share failed:', err);
-    }
-  };
-
-  const handleContactClick = () => {
-    setContactDialogOpen(true);
-  };
-
-  const handleCloseContactDialog = () => {
-    setContactDialogOpen(false);
-  };
-
   const handleEditClick = () => {
     if (!listing?.id) return;
     navigate(`/edit-listing/${listing.id}`, { state: { listing } });
-  };
-
-  const handleDeleteClick = () => {
-    if (!listing?.id) return;
-    setDeleteDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -206,8 +143,7 @@ const ListingDetails: React.FC = () => {
         }
       }
 
-      setSnackbarMessage('Обявата беше изтрита успешно');
-      setSnackbarOpen(true);
+      setError('Обявата беше изтрита успешно');
       navigate('/my-listings');
     } catch (err) {
       setError('Грешка при изтриване на обявата');
@@ -215,17 +151,6 @@ const ListingDetails: React.FC = () => {
     } finally {
       setLoading(false);
       setDeleteDialogOpen(false);
-    }
-  };
-
-  const handleFavorite = async () => {
-    if (!id || !listing) return;
-    
-    try {
-      await toggleFavorite(id);
-      setIsFavorite(!isFavorite);
-    } catch (err) {
-      setError('Грешка при управление на любими обяви');
     }
   };
 
@@ -300,8 +225,6 @@ const ListingDetails: React.FC = () => {
       </Container>
     );
   }
-
-  const isOwner = user?.uid === listing?.userId;
 
   const formatLocation = (location: any) => {
     if (!location) return 'Местоположението не е посочено';

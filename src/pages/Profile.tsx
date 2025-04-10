@@ -1,23 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
   Typography,
   Grid,
-  Paper,
   Avatar,
-  Divider,
   Button,
   Card,
   CardContent,
-  CardMedia,
-  CardActions,
-  Chip,
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useListings } from '../hooks/useListings';
 import ListingCard from '../components/ListingCard';
@@ -43,23 +37,6 @@ const Profile: React.FC = () => {
     return listing.userId === user.uid && listing.status === 'active';
   });
   const activeListingsCount = userListings.length;
-
-  // Get first letter of display name or email for avatar
-  const getAvatarText = () => {
-    console.log('User data:', {
-      displayName: user.displayName,
-      email: user.email,
-      uid: user.uid
-    });
-    
-    if (user.displayName && user.displayName.trim().length > 0) {
-      return user.displayName.trim()[0].toUpperCase();
-    }
-    if (user.email && user.email.trim().length > 0) {
-      return user.email.trim()[0].toUpperCase();
-    }
-    return 'П';
-  };
 
   return (
     <AnimatedPage animation="fade">

@@ -12,16 +12,14 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  Divider,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   Favorite as FavoriteIcon,
   LocationOn as LocationIcon,
   AccessTime as TimeIcon,
 } from '@mui/icons-material';
-import { collection, query, where, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFavorites } from '../hooks/useFavorites';
 import { formatDistanceToNow } from 'date-fns';
@@ -50,7 +48,6 @@ interface Listing {
 const Favorites = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useAuth();
   const { favorites, toggleFavorite } = useFavorites();
   const [favoriteListings, setFavoriteListings] = useState<Listing[]>([]);

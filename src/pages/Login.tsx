@@ -8,25 +8,16 @@ import {
   Button,
   Link,
   Paper,
-  InputAdornment,
-  IconButton,
   Alert,
   CircularProgress,
   Grid,
 } from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Email as EmailIcon,
-  Lock as LockIcon,
-} from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import AnimatedPage from '../components/AnimatedPage';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login, error, clearError } = useAuth();
   const navigate = useNavigate();
@@ -95,7 +86,7 @@ const Login: React.FC = () => {
                     <TextField
                       fullWidth
                       label="Парола"
-                      type={showPassword ? 'text' : 'password'}
+                      type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required

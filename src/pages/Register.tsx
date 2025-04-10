@@ -10,16 +10,12 @@ import {
   Paper,
   InputAdornment,
   IconButton,
-  Alert,
   CircularProgress,
   Grid,
 } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
-  Email as EmailIcon,
-  Lock as LockIcon,
-  Person as PersonIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import AnimatedPage from '../components/AnimatedPage';
@@ -44,14 +40,6 @@ const Register: React.FC = () => {
 
   const validatePassword = (password: string) => {
     return password.length >= 8;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

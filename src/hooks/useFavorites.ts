@@ -3,13 +3,6 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, serverTim
 import { db } from '../config/firebase';
 import { useAuth } from './useAuth';
 
-interface Favorite {
-  id: string;
-  userId: string;
-  listingId: string;
-  createdAt: Date;
-}
-
 export const useFavorites = () => {
   const { user } = useAuth();
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -32,7 +25,8 @@ export const useFavorites = () => {
         setFavorites(favoriteIds);
         setLoading(false);
       },
-      (err) => {
+      (error) => {
+        console.error('Error loading favorites:', error);
         setError('Грешка при зареждане на любими');
         setLoading(false);
       }
@@ -75,7 +69,8 @@ export const useFavorites = () => {
         };
         await setDoc(favoriteRef, favoriteData, { merge: true });
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
       setError('Грешка при обновяване на любими');
     }
   };

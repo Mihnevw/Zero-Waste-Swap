@@ -7,8 +7,6 @@ import {
   TextField,
   Button,
   Paper,
-  Alert,
-  Avatar,
   CircularProgress,
   Grid
 } from '@mui/material';
@@ -22,7 +20,6 @@ const Settings: React.FC = () => {
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   if (!user) {
     navigate('/login');
@@ -33,13 +30,11 @@ const Settings: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(false);
 
     try {
       await updateProfile(user, {
         displayName: displayName.trim()
       });
-      setSuccess(true);
       setTimeout(() => {
         navigate('/profile');
       }, 2000);

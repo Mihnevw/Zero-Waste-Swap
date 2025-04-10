@@ -13,15 +13,19 @@ import {
   IconButton,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
-import { db } from '../config/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db, storage } from '../config/firebase';
+import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
 import AnimatedPage from '../components/AnimatedPage';
 import { useTheme } from '@mui/material/styles';
 import { formatDistanceToNow } from 'date-fns';
@@ -34,6 +38,9 @@ const MyListings: React.FC = () => {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [listingToDelete, setListingToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const theme = useTheme();
 
   useEffect(() => {
@@ -44,6 +51,7 @@ const MyListings: React.FC = () => {
       }
 
       try {
+        setLoading(true);
         const q = query(
           collection(db, 'listings'),
           where('userId', '==', user.uid),
@@ -55,6 +63,7 @@ const MyListings: React.FC = () => {
           ...doc.data()
         }));
         setListings(listingsData);
+        setError(null);
       } catch (err) {
         console.error('Error fetching listings:', err);
         setError('Грешка при зареждане на вашите обяви. Моля, опитайте отново по-късно.');
@@ -70,9 +79,48 @@ const MyListings: React.FC = () => {
     navigate(`/edit-listing/${listingId}`);
   };
 
-  const handleDelete = async (listingId: string) => {
-    // Implement delete functionality
-    console.log('Delete listing:', listingId);
+  const handleDeleteClick = (listingId: string) => {
+    setListingToDelete(listingId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!listingToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      // Delete the listing document
+      const listingRef = doc(db, 'listings', listingToDelete);
+      await deleteDoc(listingRef);
+
+      // Delete associated images from storage if they exist
+      const listing = listings.find(l => l.id === listingToDelete);
+      if (listing?.images && listing.images.length > 0) {
+        for (const imageUrl of listing.images) {
+          try {
+            // Extract the path from the URL
+            const imagePath = imageUrl.split('listings/')[1];
+            if (imagePath) {
+              const imageRef = ref(storage, `listings/${imagePath}`);
+              await deleteObject(imageRef);
+            }
+          } catch (imageError) {
+            console.error('Error deleting image:', imageError);
+          }
+        }
+      }
+
+      // Update the local state
+      setListings(listings.filter(l => l.id !== listingToDelete));
+      setError(null);
+    } catch (err) {
+      console.error('Error deleting listing:', err);
+      setError('Грешка при изтриване на обявата. Моля, опитайте отново.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setListingToDelete(null);
+    }
   };
 
   const formatDate = (date: any) => {
@@ -102,27 +150,30 @@ const MyListings: React.FC = () => {
     }
   };
 
-  if (loading) {
+  const renderHeader = () => (
+    <AnimatedPage animation="slide" delay={0.2}>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Моите обяви
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => navigate('/create-listing')}
+        >
+          Нова обява
+        </Button>
+      </Box>
+    </AnimatedPage>
+  );
+
+  if (loading && !isDeleting) {
     return (
       <AnimatedPage animation="fade">
         <Box sx={{ pt: 8 }}>
           <Container maxWidth="lg">
-            <AnimatedPage animation="slide" delay={0.2}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" component="h1" gutterBottom>
-                  Моите обяви
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={() => navigate('/create-listing')}
-                >
-                  Нова обява
-                </Button>
-              </Box>
-            </AnimatedPage>
-
+            {renderHeader()}
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress />
             </Box>
@@ -137,22 +188,7 @@ const MyListings: React.FC = () => {
       <AnimatedPage animation="fade">
         <Box sx={{ pt: 8 }}>
           <Container maxWidth="lg">
-            <AnimatedPage animation="slide" delay={0.2}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" component="h1" gutterBottom>
-                  Моите обяви
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={() => navigate('/create-listing')}
-                >
-                  Нова обява
-                </Button>
-              </Box>
-            </AnimatedPage>
-
+            {renderHeader()}
             <Alert severity="error" sx={{ mt: 4 }}>
               {error}
             </Alert>
@@ -166,21 +202,7 @@ const MyListings: React.FC = () => {
     <AnimatedPage animation="fade">
       <Box sx={{ pt: 8 }}>
         <Container maxWidth="lg">
-          <AnimatedPage animation="slide" delay={0.2}>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" component="h1" gutterBottom>
-                Моите обяви
-              </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/create-listing')}
-              >
-                Нова обява
-              </Button>
-            </Box>
-          </AnimatedPage>
+          {renderHeader()}
 
           {listings.length === 0 ? (
             <AnimatedPage animation="fade" delay={0.6}>
@@ -214,7 +236,7 @@ const MyListings: React.FC = () => {
                         alt={listing.title}
                         sx={{ objectFit: 'cover' }}
                       />
-                      <CardContent sx={{ flexGrow: 1 }}>
+                      <CardContent>
                         <Typography gutterBottom variant="h6" component="h2">
                           {listing.title}
                         </Typography>
@@ -243,12 +265,12 @@ const MyListings: React.FC = () => {
                           </Typography>
                         </Box>
                       </CardContent>
-                      <CardActions sx={{ justifyContent: 'flex-end', p: 1 }}>
+                      <CardActions>
                         <IconButton
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(listing.id);
+                            handleDeleteClick(listing.id);
                           }}
                           title="Изтрий обява"
                           color="error"
@@ -264,6 +286,35 @@ const MyListings: React.FC = () => {
           )}
         </Container>
       </Box>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Потвърждение за изтриване</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Сигурни ли сте, че искате да изтриете тази обява? Това действие не може да бъде отменено.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={isDeleting}
+          >
+            Отказ
+          </Button>
+          <Button 
+            onClick={handleDelete} 
+            color="error" 
+            variant="contained"
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={20} /> : null}
+          >
+            {isDeleting ? 'Изтриване...' : 'Изтрий'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AnimatedPage>
   );
 };

@@ -5,7 +5,6 @@ import {
   Typography,
   Grid,
   Paper,
-  useTheme,
 } from '@mui/material';
 import {
   Recycling as RecyclingIcon,
@@ -17,7 +16,6 @@ import Footer from '../components/Footer';
 import AnimatedPage from '../components/AnimatedPage';
 
 const HowItWorks: React.FC = () => {
-  const theme = useTheme();
 
   const steps = [
     {

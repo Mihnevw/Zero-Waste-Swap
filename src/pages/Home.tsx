@@ -8,15 +8,9 @@ import {
   Card,
   CardContent,
   CardMedia,
-  CardActions,
   IconButton,
   useTheme,
-  useMediaQuery,
-  Tabs,
-  Tab,
   Chip,
-  Button,
-  Divider,
   CircularProgress,
   Alert,
 } from '@mui/material';
@@ -24,23 +18,23 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { useAnalytics } from '../components/AnalyticsProvider';
-import { 
-  heroImage, 
-  vegetablesImage, 
-  shoppingBagsImage, 
-  bambooImage, 
-  shoesImage, 
-  coffeeMakerImage, 
-  jacketImage, 
-  boardGamesImage, 
-  yogaMatImage, 
-  blenderImage, 
-  childrenBooksImage, 
-  gardenToolsImage, 
-  laptopStandImage, 
-  bicycleImage, 
-  artSuppliesImage, 
-  deskLampImage, 
+import {
+  heroImage,
+  vegetablesImage,
+  shoppingBagsImage,
+  bambooImage,
+  shoesImage,
+  coffeeMakerImage,
+  jacketImage,
+  boardGamesImage,
+  yogaMatImage,
+  blenderImage,
+  childrenBooksImage,
+  gardenToolsImage,
+  laptopStandImage,
+  bicycleImage,
+  artSuppliesImage,
+  deskLampImage,
   laptopImage,
   clothesImage,
   electronicsImage,
@@ -55,7 +49,6 @@ import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
-import { formatDistanceToNow } from 'date-fns';
 import AnimatedPage from '../components/AnimatedPage';
 
 interface Listing {
@@ -78,14 +71,12 @@ interface Listing {
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { logPageView } = useAnalytics();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentListings, setRecentListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const { favorites, toggleFavorite } = useFavorites();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const categories = [
@@ -174,20 +165,20 @@ const Home: React.FC = () => {
     const listingId = isDemoListing ? `demo_${listing.id}` : listing.id;
     const isFavorite = favorites.includes(listingId);
     const images = isDemoListing ? [listing.image] : listing.images;
-    
+
     // Safely handle location data
     let locationText = 'Location not specified';
     if (isDemoListing && listing.location) {
       locationText = listing.location;
     } else if (listing.location) {
-      locationText = typeof listing.location === 'string' 
-        ? listing.location 
+      locationText = typeof listing.location === 'string'
+        ? listing.location
         : listing.location.address || 'Location not specified';
     }
 
     return (
-      <Card 
-        sx={{ 
+      <Card
+        sx={{
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -232,8 +223,8 @@ const Home: React.FC = () => {
           <Typography variant="h6" component="h2" gutterBottom>
             {listing.title}
           </Typography>
-          <Typography 
-            variant="body2" 
+          <Typography
+            variant="body2"
             color="text.secondary"
             sx={{
               overflow: 'hidden',

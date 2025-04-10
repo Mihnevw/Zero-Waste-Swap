@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -8,7 +8,6 @@ import {
   Button,
   MenuItem,
   Grid,
-  Alert,
   Paper,
   IconButton,
   Dialog,
@@ -20,9 +19,6 @@ import {
   InputLabel,
   Select,
   FormHelperText,
-  Card,
-  CardMedia,
-  CardContent,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../hooks/useAuth';
@@ -33,7 +29,6 @@ import { Listing } from '../types/listing';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AnimatedPage from '../components/AnimatedPage';
 import { useFavorites } from '../hooks/useFavorites';
-import { uploadImage } from '../utils/imageUpload';
 
 const categories = [
   'Дрехи',
@@ -46,9 +41,32 @@ const categories = [
 
 const conditions = ['ново', 'като ново', 'добро', 'задоволително', 'лошо'] as const;
 
+const initialFormData: Listing = {
+  id: '',
+  title: '',
+  description: '',
+  category: '',
+  condition: '',
+  status: 'active',
+  images: [],
+  location: {
+    latitude: 0,
+    longitude: 0,
+    address: '',
+    region: ''
+  },
+  userId: '',
+  userName: '',
+  userEmail: '',
+  userPhone: '',
+  firstName: '',
+  lastName: '',
+  createdAt: '',
+  updatedAt: ''
+};
+
 const EditListing = () => {
   const { id } = useParams();
-  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toggleFavorite } = useFavorites();
@@ -56,29 +74,7 @@ const EditListing = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<Listing>({
-    id: '',
-    title: '',
-    description: '',
-    category: '',
-    condition: '',
-    status: '',
-    images: [],
-    location: {
-      latitude: 0,
-      longitude: 0,
-      address: '',
-      region: ''
-    },
-    userId: '',
-    userName: '',
-    userEmail: '',
-    userPhone: '',
-    firstName: '',
-    lastName: '',
-    createdAt: '',
-    updatedAt: ''
-  });
+  const [formData, setFormData] = useState<Listing>(initialFormData);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 

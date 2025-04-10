@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -36,7 +36,6 @@ const CreateItem: React.FC = () => {
   const { logEvent } = useAnalytics();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showError, setShowError] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -86,7 +85,6 @@ const CreateItem: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setShowError(false);
 
     try {
       if (!user) {
@@ -140,7 +138,6 @@ const CreateItem: React.FC = () => {
     } catch (err: any) {
       console.error('Error creating item:', err);
       setError(err.message || 'Failed to create item. Please try again.');
-      setShowError(true);
     } finally {
       setLoading(false);
     }
