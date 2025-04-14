@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Box, GlobalStyles } from '@mui/material';
 import { AnalyticsProvider } from './components/AnalyticsProvider';
 import { AuthProvider } from './contexts/AuthContext';
+import { ChatProvider } from './contexts/ChatContext';
 import { theme } from './theme';
 import AppRoutes from './routes';
 import Navbar from './components/Navbar';
@@ -39,32 +40,34 @@ const App: React.FC = () => {
         <CssBaseline />
         <GlobalStyles styles={globalStyles} />
         <AuthProvider>
-          <AnalyticsProvider>
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: '100vh',
-                width: '100%',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              <Navbar />
+          <ChatProvider>
+            <AnalyticsProvider>
               <Box
-                component="main"
                 sx={{
-                  flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
+                  minHeight: '100vh',
                   width: '100%',
                   position: 'relative',
+                  overflow: 'hidden',
                 }}
               >
-                <AppRoutes />
+                <Navbar />
+                <Box
+                  component="main"
+                  sx={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: '100%',
+                    position: 'relative',
+                  }}
+                >
+                  <AppRoutes />
+                </Box>
               </Box>
-            </Box>
-          </AnalyticsProvider>
+            </AnalyticsProvider>
+          </ChatProvider>
         </AuthProvider>
       </ThemeProvider>
     </Router>
