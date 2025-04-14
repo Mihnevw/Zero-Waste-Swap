@@ -17,6 +17,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import ForgotPassword from './pages/ForgotPassword';
 import NotFound from './pages/NotFound';
+import ChatPage from './pages/ChatPage';
 
 const AppRoutes = () => {
   return (
@@ -38,6 +39,7 @@ const AppRoutes = () => {
       <Route path="/favorites" element={<Favorites />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route path="/chat" element={<ChatPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
