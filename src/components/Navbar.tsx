@@ -14,17 +14,21 @@ import {
   MenuItem,
   useTheme,
   useMediaQuery,
+  Badge,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Recycling as RecyclingIcon,
   Add as AddIcon,
+  Chat as ChatIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import { useChat } from '../contexts/ChatContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { unreadCount } = useChat();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -160,6 +164,33 @@ const Navbar = () => {
               </Button>
             ))}
           </Box>
+
+          {/* Chat Icon */}
+          {user && (
+            <Tooltip title="Съобщения">
+              <IconButton
+                onClick={() => navigate('/chat')}
+                sx={{ mr: 2, color: 'text.primary' }}
+              >
+                <Badge 
+                  badgeContent={unreadCount} 
+                  color="error"
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      backgroundColor: '#ff1744',
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      minWidth: '20px',
+                      height: '20px',
+                      borderRadius: '10px',
+                    }
+                  }}
+                >
+                  <ChatIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+          )}
 
           {/* Create Listing Button */}
           {user && (

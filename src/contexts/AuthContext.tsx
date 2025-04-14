@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import {
   User,
   signInWithEmailAndPassword,
@@ -14,6 +14,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
+  token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -27,10 +28,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          setToken(token);
+        } catch (err) {
+          console.error('Error getting token:', err);
+          setToken(null);
+        }
+      } else {
+        setToken(null);
+      }
       setLoading(false);
     });
 
@@ -40,7 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setError(null);
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const token = await userCredential.user.getIdToken();
+      setToken(token);
     } catch (err: any) {
       let errorMessage = 'Грешка при влизане. Моля, опитайте отново.';
 
@@ -50,6 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           break;
         case 'auth/wrong-password':
           errorMessage = 'Грешна парола';
+          break;
+        case 'auth/invalid-credential':
+          errorMessage = 'Грешен имейл или парола';
           break;
         case 'auth/invalid-email':
           errorMessage = 'Невалиден имейл адрес';
@@ -75,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await updateProfile(userCredential.user, {
         displayName: name
       });
+
+      const token = await userCredential.user.getIdToken();
+      setToken(token);
     } catch (err: any) {
       let errorMessage = 'Грешка при регистрация. Моля, опитайте отново.';
 
@@ -104,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setError(null);
       await signOut(auth);
+      setToken(null);
     } catch (err: any) {
       setError(err.message || 'Грешка при излизане');
       throw err;
@@ -141,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     loading,
     error,
+    token,
     login,
     register,
     logout,
@@ -153,4 +176,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {!loading && children}
     </AuthContext.Provider>
   );
-} 
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}; 
