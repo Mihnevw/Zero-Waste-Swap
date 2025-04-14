@@ -77,7 +77,7 @@ const Login: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      error={!!error && !validateEmail(email)}
+                      error={!!error}
                       helperText={!!error && !validateEmail(email) ? 'Моля, въведете валиден имейл адрес' : ''}
                     />
                   </Grid>

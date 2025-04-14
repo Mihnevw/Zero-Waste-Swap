@@ -17,12 +17,12 @@ import {
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import ChatIcon from '@mui/icons-material/Chat';
 import { useAnalytics } from '../components/AnalyticsProvider';
 import {
   heroImage,
   vegetablesImage,
   shoppingBagsImage,
-  bambooImage,
   shoesImage,
   coffeeMakerImage,
   jacketImage,
@@ -41,7 +41,7 @@ import {
   booksImage,
   furnitureImage,
   toysImage,
-  sportsImage
+  sportsImage,
 } from '../assets/placeholders';
 import SearchBar from '../components/SearchBar';
 import Footer from '../components/Footer';
@@ -50,6 +50,7 @@ import { db } from '../config/firebase';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
 import AnimatedPage from '../components/AnimatedPage';
+import { useChat } from '../contexts/ChatContext';
 
 interface Listing {
   id: string;
@@ -66,6 +67,12 @@ interface Listing {
     latitude: number;
     longitude: number;
   };
+  userId: string;
+  user: {
+    _id: string;
+    username: string;
+    email: string;
+  };
 }
 
 const Home: React.FC = () => {
@@ -76,8 +83,10 @@ const Home: React.FC = () => {
   const [recentListings, setRecentListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const { favorites, toggleFavorite } = useFavorites();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { setCurrentChat } = useChat();
   const [error, setError] = useState<string | null>(null);
+  const [startingChat, setStartingChat] = useState<string | null>(null);
 
   const categories = [
     { id: 'clothing', name: 'Дрехи', image: clothesImage },
@@ -101,11 +110,32 @@ const Home: React.FC = () => {
         limit(8)
       );
       const querySnapshot = await getDocs(q);
-      const listings = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-      })) as Listing[];
+      const listings = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        // Get the user ID from the document path or data
+        const userId = data.userId || doc.ref.parent.parent?.id;
+        
+        if (!userId) {
+          console.warn('Listing missing userId:', doc.id);
+          console.log('Listing data:', data);
+          // If no userId is found, we can't create a chat, so skip this listing
+          return null;
+        }
+
+        return {
+          id: doc.id,
+          ...data,
+          userId: userId,
+          user: {
+            _id: userId,
+            username: data.userName || data.firstName || 'Anonymous',
+            email: data.userEmail || data.email
+          },
+          createdAt: data.createdAt?.toDate() || new Date(),
+        } as Listing;
+      }).filter(listing => listing !== null); // Filter out listings without userId
+
+      console.log('Fetched listings:', listings); // Debug log
       setRecentListings(listings);
     } catch (error) {
       console.error('Error fetching recent listings:', error);
@@ -161,10 +191,67 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleStartChat = async (e: React.MouseEvent, listing: any) => {
+    e.stopPropagation();
+    if (!user || !token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setStartingChat(listing.id);
+      const apiUrl = process.env.VITE_API_URL || 'http://localhost:3001';
+      console.log('Starting chat with API URL:', apiUrl);
+      console.log('Listing data:', listing);
+      
+      // Get the participant's Firebase UID
+      const participantId = listing.userId || listing.user?._id;
+      console.log('Participant ID:', participantId);
+      console.log('Current user ID:', user.uid);
+      
+      if (!participantId) {
+        console.error('Missing participant ID in listing:', listing);
+        throw new Error('Cannot start chat: User ID not found in listing data');
+      }
+
+      if (participantId === user.uid) {
+        throw new Error('Cannot start chat with yourself');
+      }
+
+      const response = await fetch(`${apiUrl}/api/chats`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ participantId })
+      });
+
+      console.log('Chat creation response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Chat creation error:', errorData);
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const chat = await response.json();
+      console.log('Chat created successfully:', chat);
+      setCurrentChat(chat);
+      navigate('/chat');
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      setError(error instanceof Error ? error.message : 'Failed to start chat. Please try again.');
+    } finally {
+      setStartingChat(null);
+    }
+  };
+
   const renderListingCard = (listing: any, isDemoListing: boolean = false) => {
     const listingId = isDemoListing ? `demo_${listing.id}` : listing.id;
     const isFavorite = favorites.includes(listingId);
     const images = isDemoListing ? [listing.image] : listing.images;
+    const isStartingChat = startingChat === listingId;
 
     // Safely handle location data
     let locationText = 'Location not specified';
@@ -178,6 +265,7 @@ const Home: React.FC = () => {
 
     return (
       <Card
+        key={`card-${listingId}`}
         sx={{
           height: '100%',
           display: 'flex',
@@ -199,25 +287,45 @@ const Home: React.FC = () => {
             alt={listing.title}
             sx={{ objectFit: 'cover' }}
           />
-          <IconButton
-            size="small"
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              },
-            }}
-            onClick={(e) => handleFavoriteClick(e, listingId)}
-          >
-            {isFavorite ? (
-              <FavoriteIcon color="error" />
-            ) : (
-              <FavoriteBorderIcon />
+          <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
+            <IconButton
+              key={`favorite-${listingId}`}
+              size="small"
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                },
+              }}
+              onClick={(e) => handleFavoriteClick(e, listingId)}
+            >
+              {isFavorite ? (
+                <FavoriteIcon color="error" />
+              ) : (
+                <FavoriteBorderIcon />
+              )}
+            </IconButton>
+            {!isDemoListing && (
+              <IconButton
+                key={`chat-${listingId}`}
+                size="small"
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  },
+                }}
+                onClick={(e) => handleStartChat(e, listing)}
+                disabled={isStartingChat || !user}
+              >
+                {isStartingChat ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  <ChatIcon color={user ? 'primary' : 'disabled'} />
+                )}
+              </IconButton>
             )}
-          </IconButton>
+          </Box>
         </Box>
         <CardContent sx={{ flexGrow: 1 }}>
           <Typography variant="h6" component="h2" gutterBottom>
@@ -245,9 +353,9 @@ const Home: React.FC = () => {
           </Box>
           {!isDemoListing && listing.category && (
             <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-              <Chip label={listing.category} size="small" color="primary" variant="outlined" />
+              <Chip key={`category-${listingId}`} label={listing.category} size="small" color="primary" variant="outlined" />
               {listing.condition && (
-                <Chip label={listing.condition} size="small" color="secondary" variant="outlined" />
+                <Chip key={`condition-${listingId}`} label={listing.condition} size="small" color="secondary" variant="outlined" />
               )}
             </Box>
           )}
@@ -275,11 +383,11 @@ const Home: React.FC = () => {
     },
     {
       id: 3,
-      title: 'Bamboo Utensils Set',
-      description: 'Complete set of bamboo kitchen utensils including spoons, spatulas, and serving tools',
-      image: bambooImage,
+      title: 'Kitchen Set',
+      description: 'Complete kitchen set including pots, pans, and utensils, lightly used',
+      image: blenderImage,
       location: 'Varna, Bulgaria',
-      category: 'Kitchen',
+      category: 'Other',
     },
     {
       id: 4,
@@ -295,7 +403,7 @@ const Home: React.FC = () => {
       description: 'Philips coffee maker, 1.5L capacity, used for 6 months, works perfectly',
       image: coffeeMakerImage,
       location: 'Ruse, Bulgaria',
-      category: 'Appliances',
+      category: 'Electronics',
     },
     {
       id: 6,
@@ -547,7 +655,7 @@ const Home: React.FC = () => {
             </AnimatedPage>
             <Grid container spacing={4} sx={{ mt: 2 }}>
               {featuredListings.map((listing) => (
-                <Grid item xs={12} sm={6} md={4} key={listing.id}>
+                <Grid item xs={12} sm={6} md={4} key={`featured-${listing.id}`}>
                   {renderListingCard(listing, true)}
                 </Grid>
               ))}
@@ -596,7 +704,7 @@ const Home: React.FC = () => {
             ) : (
               <Grid container spacing={4} sx={{ mt: 2 }}>
                 {recentListings.map((listing) => (
-                  <Grid item xs={12} sm={6} md={4} key={listing.id}>
+                  <Grid item xs={12} sm={6} md={4} key={`recent-${listing.id}`}>
                     {renderListingCard(listing)}
                   </Grid>
                 ))}
