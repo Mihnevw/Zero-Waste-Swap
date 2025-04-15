@@ -1,14 +1,14 @@
 # Dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.js
+.firebase/
 
 # Testing
 /coverage
 
 # Production
 /build
-/dist
 
 # Environment files
 .env
