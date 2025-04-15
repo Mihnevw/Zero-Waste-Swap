@@ -2,9 +2,14 @@ const mongoose = require('mongoose');
 
 const chatSchema = new mongoose.Schema({
   participants: [{
-    type: String, // Using Firebase UID
+    type: String,
     required: true
   }],
+  listing: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Listing',
+    required: false
+  },
   messages: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Message'
@@ -14,18 +19,18 @@ const chatSchema = new mongoose.Schema({
     ref: 'Message'
   },
   createdAt: {
-    type: String,
-    default: () => new Date().toISOString()
+    type: Date,
+    default: Date.now
   },
   updatedAt: {
-    type: String,
-    default: () => new Date().toISOString()
+    type: Date,
+    default: Date.now
   }
 });
 
-// Update timestamps before saving
+// Update the updatedAt timestamp before saving
 chatSchema.pre('save', function(next) {
-  this.updatedAt = new Date().toISOString();
+  this.updatedAt = new Date();
   next();
 });
 

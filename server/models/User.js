@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  _id: {
+  uid: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   email: {
     type: String,
@@ -20,15 +21,22 @@ const userSchema = new mongoose.Schema({
     required: true
   },
   photoURL: {
-    type: String,
-    default: ''
+    type: String
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String
+  },
+  verificationTokenExpiry: {
+    type: Date
   },
   createdAt: {
-    type: String,
-    default: () => new Date().toISOString()
+    type: Date,
+    default: Date.now
   }
 });
 
-const User = mongoose.model('User', userSchema);
-
-module.exports = User; 
+module.exports = mongoose.model('User', userSchema); 

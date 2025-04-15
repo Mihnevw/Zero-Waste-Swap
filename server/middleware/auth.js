@@ -42,41 +42,45 @@ const auth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('No token provided in auth header');
       return res.status(401).json({ message: 'No token provided' });
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    
-    // Get or create user in database
-    const User = require('../models/User');
-    let user = await User.findOne({ _id: decodedToken.uid });
-    
-    if (!user) {
-      // Create new user if they don't exist
-      user = new User({
-        _id: decodedToken.uid,
-        email: decodedToken.email,
-        username: decodedToken.email.split('@')[0],
-        displayName: decodedToken.name || decodedToken.email.split('@')[0],
-        photoURL: decodedToken.picture || '',
-        createdAt: new Date().toISOString()
-      });
-      await user.save();
-      console.log('Created new user:', user._id);
+    if (!token) {
+      console.log('Invalid token format in auth header');
+      return res.status(401).json({ message: 'Invalid token format' });
     }
-    
+
+    // Verify the Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    if (!decodedToken) {
+      console.log('Invalid token verification result');
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    console.log('Token verified for user:', {
+      uid: decodedToken.uid,
+      email: decodedToken.email
+    });
+
+    // Set user information in the request
     req.user = {
-      _id: user._id,
-      uid: user._id,
-      email: user.email,
-      name: user.displayName || user.username
+      _id: decodedToken.uid,
+      uid: decodedToken.uid,
+      email: decodedToken.email || '',
+      name: decodedToken.name || decodedToken.email || '',
+      displayName: decodedToken.name || decodedToken.email || ''
     };
-    
+
+    console.log('User set in request:', req.user);
     next();
   } catch (error) {
-    console.error('Auth error:', error);
-    res.status(401).json({ message: 'Invalid token' });
+    console.error('Auth middleware error:', error);
+    if (error.code === 'auth/id-token-expired') {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    res.status(401).json({ message: 'Authentication failed', error: error.message });
   }
 };
 
