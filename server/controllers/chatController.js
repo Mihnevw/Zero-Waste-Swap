@@ -2,6 +2,8 @@ const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const { sendMessageNotification } = require('../services/emailService');
+const admin = require('firebase-admin');
 
 // Get all chats for a user
 exports.getUserChats = async (req, res) => {
@@ -62,133 +64,82 @@ exports.getUserChats = async (req, res) => {
 exports.getChatMessages = async (req, res) => {
   try {
     const { chatId } = req.params;
-    const userId = req.user._id || req.user.uid;
+    const userId = req.user._id;
     
-    console.log('Fetching messages - Input:', { 
-      chatId, 
-      userId,
-      userDetails: {
-        _id: req.user._id,
-        uid: req.user.uid,
-        email: req.user.email
-      }
-    });
-
-    // Validate chat ID format
+    // Validate chatId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(chatId)) {
-      console.log('Invalid chat ID format:', chatId);
       return res.status(400).json({ message: 'Invalid chat ID format' });
     }
+    
+    console.log('Fetching messages:', { chatId, userId });
 
-    // First find the chat and verify participant
+    // Find the chat and verify participant
     const chat = await Chat.findOne({
       _id: chatId,
-      participants: { $in: [userId] }
-    }).populate('participants', 'username email photoURL displayName');
+      participants: userId
+    });
 
     if (!chat) {
-      console.log('Chat access denied:', { 
-        chatId, 
-        userId,
-        exists: await Chat.exists({ _id: chatId }),
-        isParticipant: await Chat.exists({ _id: chatId, participants: userId })
-      });
+      console.log('Chat not found or access denied:', { chatId, userId });
       return res.status(404).json({ message: 'Chat not found or access denied' });
     }
 
-    // Fetch messages with populated sender info
+    // Fetch messages
     const messages = await Message.find({ chat: chatId })
-      .populate({
-        path: 'sender',
-        model: 'User',
-        select: 'username email photoURL displayName uid'
-      })
       .sort({ createdAt: 1 });
 
-    // Log message details for debugging
-    console.log('Messages retrieved successfully:', {
+    // Transform messages to include sender info
+    const transformedMessages = await Promise.all(messages.map(async (msg) => {
+      try {
+        // Get sender info from Firebase
+        const sender = await admin.auth().getUser(msg.sender);
+        return {
+          _id: msg._id.toString(),
+          chat: msg.chat.toString(),
+          text: msg.text,
+          createdAt: msg.createdAt,
+          read: msg.read,
+          sender: {
+            _id: sender.uid,
+            name: sender.displayName || sender.email?.split('@')[0] || 'Unknown User',
+            email: sender.email,
+            photoURL: sender.photoURL
+          }
+        };
+      } catch (error) {
+        console.error('Error getting sender info:', error);
+        return {
+          _id: msg._id.toString(),
+          chat: msg.chat.toString(),
+          text: msg.text,
+          createdAt: msg.createdAt,
+          read: msg.read,
+          sender: {
+            _id: msg.sender,
+            name: 'Unknown User',
+            email: '',
+            photoURL: null
+          }
+        };
+      }
+    }));
+
+    console.log('Retrieved messages:', {
       chatId,
-      messageCount: messages.length,
-      firstMessage: messages[0] ? {
-        id: messages[0]._id,
-        sender: messages[0].sender ? {
-          id: messages[0].sender._id || messages[0].sender.uid,
-          email: messages[0].sender.email
-        } : 'No sender info',
-        timestamp: messages[0].createdAt
-      } : null,
-      lastMessage: messages[messages.length - 1] ? {
-        id: messages[messages.length - 1]._id,
-        sender: messages[messages.length - 1].sender ? {
-          id: messages[messages.length - 1].sender._id || messages[messages.length - 1].sender.uid,
-          email: messages[messages.length - 1].sender.email
-        } : 'No sender info',
-        timestamp: messages[messages.length - 1].createdAt
-      } : null,
-      senderIds: messages.map(msg => msg.sender?._id || msg.sender?.uid).filter(Boolean)
-    });
-
-    // Transform messages to ensure consistent sender info
-    const transformedMessages = messages.map(msg => {
-      const messageObj = msg.toObject();
-      // Create a default sender for messages with missing sender info
-      const defaultSender = {
-        _id: 'deleted-user',
-        uid: 'deleted-user',
-        username: 'Deleted User',
-        email: '',
-        photoURL: '',
-        displayName: 'Deleted User'
-      };
-
-      // If sender is null or undefined, use the default sender
-      const sender = msg.sender ? {
-        ...msg.sender.toObject(),
-        _id: msg.sender._id || msg.sender.uid,
-        uid: msg.sender.uid || msg.sender._id,
-        username: msg.sender.username || 'Unknown User',
-        email: msg.sender.email || '',
-        photoURL: msg.sender.photoURL || '',
-        displayName: msg.sender.displayName || msg.sender.username || 'Unknown User'
-      } : defaultSender;
-
-      return {
-        ...messageObj,
-        sender,
-        // Ensure other required fields have default values
-        text: messageObj.text || '',
-        createdAt: messageObj.createdAt || new Date().toISOString(),
-        read: !!messageObj.read
-      };
-    });
-
-    // Log the transformed messages for debugging
-    console.log('Transformed messages:', {
       messageCount: transformedMessages.length,
       sampleMessage: transformedMessages[0] ? {
-        id: transformedMessages[0]._id,
+        _id: transformedMessages[0]._id,
         sender: {
-          id: transformedMessages[0].sender._id,
-          username: transformedMessages[0].sender.username
-        },
-        hasRequiredFields: transformedMessages[0].sender && 
-                         transformedMessages[0].text !== undefined && 
-                         transformedMessages[0].createdAt
+          _id: transformedMessages[0].sender._id,
+          name: transformedMessages[0].sender.name
+        }
       } : null
     });
 
     res.json(transformedMessages);
   } catch (error) {
-    console.error('Error in getChatMessages:', {
-      error: error.message,
-      stack: error.stack,
-      chatId: req.params.chatId,
-      userId: req.user?._id || req.user?.uid
-    });
-    res.status(500).json({ 
-      message: 'Failed to fetch messages',
-      details: error.message
-    });
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ message: 'Failed to fetch messages', error: error.message });
   }
 };
 
@@ -196,7 +147,7 @@ exports.getChatMessages = async (req, res) => {
 exports.createChat = async (req, res) => {
   try {
     const { participantId } = req.body;
-    const currentUserId = req.user._id;
+    const currentUserId = req.user._id; // This will be the Firebase UID
     
     console.log('Creating chat:', { currentUserId, participantId });
 
@@ -205,7 +156,7 @@ exports.createChat = async (req, res) => {
       return res.status(400).json({ message: 'Participant ID is required' });
     }
 
-    if (participantId === currentUserId.toString()) {
+    if (participantId === currentUserId) {
       console.log('Self-chat attempt');
       return res.status(400).json({ message: 'Cannot create chat with yourself' });
     }
@@ -213,17 +164,12 @@ exports.createChat = async (req, res) => {
     // Check if chat already exists
     const existingChat = await Chat.findOne({
       participants: { $all: [currentUserId, participantId] }
-    })
-    .populate('participants', 'username email photoURL displayName');
+    });
 
     if (existingChat) {
       console.log('Found existing chat:', {
         chatId: existingChat._id,
-        participants: existingChat.participants.map(p => ({
-          id: p._id,
-          username: p.username,
-          email: p.email
-        }))
+        participants: existingChat.participants
       });
       return res.json(existingChat);
     }
@@ -232,20 +178,15 @@ exports.createChat = async (req, res) => {
     const chat = new Chat({
       participants: [currentUserId, participantId],
       messages: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
 
     await chat.save();
-    await chat.populate('participants', 'username email photoURL displayName');
 
     console.log('Created new chat:', {
       chatId: chat._id,
-      participants: chat.participants.map(p => ({
-        id: p._id,
-        username: p.username,
-        email: p.email
-      }))
+      participants: chat.participants
     });
 
     res.status(201).json(chat);
@@ -260,107 +201,100 @@ exports.sendMessage = async (req, res) => {
   try {
     const { text } = req.body;
     const chatId = req.params.chatId;
-    const userId = req.user.uid || req.user._id; // Prefer Firebase UID
+    const senderId = req.user._id;
 
-    console.log('Sending message - Input:', { 
-      chatId, 
-      userId,
-      textLength: text?.length,
-      userDetails: {
-        _id: req.user._id,
-        uid: req.user.uid,
-        email: req.user.email
-      }
-    });
+    console.log('Sending message:', { chatId, senderId, textLength: text?.length });
 
-    // Validate chat ID format
-    if (!mongoose.Types.ObjectId.isValid(chatId)) {
-      console.log('Invalid chat ID format:', chatId);
-      return res.status(400).json({ message: 'Invalid chat ID format' });
-    }
-
-    // Validate message text
-    if (!text || typeof text !== 'string' || !text.trim()) {
-      console.log('Invalid message text:', { text });
-      return res.status(400).json({ message: 'Message text is required' });
-    }
-
-    // Find chat and verify participant
-    const chat = await Chat.findOne({
-      _id: chatId,
-      participants: userId
-    });
-
+    // Find the chat
+    const chat = await Chat.findById(chatId);
     if (!chat) {
-      console.log('Chat access denied:', { 
-        chatId, 
-        userId,
-        exists: await Chat.exists({ _id: chatId }),
-        isParticipant: await Chat.exists({ _id: chatId, participants: userId })
-      });
-      return res.status(404).json({ message: 'Chat not found or access denied' });
+      console.log('Chat not found:', chatId);
+      return res.status(404).json({ message: 'Chat not found' });
     }
 
-    // Get user information
-    const user = await User.findOne({ _id: userId });
-    if (!user) {
-      console.log('User not found:', userId);
-      return res.status(404).json({ message: 'User not found' });
+    // Verify sender is a participant
+    if (!chat.participants.includes(senderId)) {
+      console.log('Sender not in chat participants:', { senderId, participants: chat.participants });
+      return res.status(403).json({ message: 'Not authorized to send message in this chat' });
     }
 
-    // Create and save the message
+    // Create the message
     const message = new Message({
       chat: chatId,
-      sender: userId, // Using string ID
-      text: text.trim(),
-      read: false,
-      createdAt: new Date().toISOString()
+      sender: senderId,
+      text,
+      read: false
     });
 
     await message.save();
 
-    // Transform message for response
-    const transformedMessage = {
+    // Update chat's last message and timestamp
+    chat.lastMessage = message._id;
+    chat.updatedAt = new Date();
+    await chat.save();
+
+    // Find the recipient (the other participant)
+    const recipientId = chat.participants.find(id => id !== senderId);
+    
+    if (recipientId) {
+      try {
+        // Get recipient's info from Firebase
+        const recipient = await admin.auth().getUser(recipientId);
+        console.log('Found recipient:', { 
+          uid: recipient.uid, 
+          email: recipient.email,
+          displayName: recipient.displayName 
+        });
+
+        if (recipient && recipient.email) {
+          try {
+            // Send email notification
+            await sendMessageNotification(
+              recipient.email,
+              req.user.name || req.user.email,
+              text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+              chatId
+            );
+            console.log('Email notification sent to:', recipient.email);
+          } catch (emailError) {
+            console.error('Failed to send email notification:', {
+              error: emailError.message,
+              recipient: recipient.email,
+              chatId,
+              stack: emailError.stack
+            });
+            // Continue with the request even if email fails
+          }
+        } else {
+          console.log('Recipient has no email address:', recipientId);
+        }
+      } catch (error) {
+        console.error('Error getting recipient info:', {
+          error: error.message,
+          recipientId,
+          chatId,
+          stack: error.stack
+        });
+        // Continue with the request even if we can't get recipient info
+      }
+    } else {
+      console.log('No recipient found for chat:', chatId);
+    }
+
+    // Get the populated message for response
+    const populatedMessage = {
       ...message.toObject(),
       sender: {
-        _id: user._id,
-        uid: user._id, // Firebase UID is stored as _id
-        username: user.username || 'Unknown User',
-        email: user.email || '',
-        photoURL: user.photoURL || '',
-        displayName: user.displayName || user.username || 'Unknown User'
+        _id: senderId,
+        name: req.user.name,
+        email: req.user.email
       }
     };
 
-    // Update chat's last message and timestamp
-    await Chat.findByIdAndUpdate(chatId, {
-      $push: { messages: message._id },
-      lastMessage: message._id,
-      updatedAt: new Date().toISOString()
-    });
-
-    console.log('Message sent successfully:', {
-      messageId: message._id,
-      chatId,
-      sender: {
-        id: transformedMessage.sender._id,
-        username: transformedMessage.sender.username
-      },
-      textLength: transformedMessage.text.length
-    });
-
-    res.status(201).json(transformedMessage);
+    res.status(201).json(populatedMessage);
   } catch (error) {
-    console.error('Error in sendMessage:', {
-      error: error.message,
-      stack: error.stack,
-      chatId: req.params.chatId,
-      userId: req.user?.uid || req.user?._id
-    });
-    res.status(500).json({ 
-      message: 'Failed to send message',
-      details: error.message
-    });
+    console.error('Error sending message:', error);
+    res.status(500).json({ message: 'Error sending message', error: error.message });
   }
 };
 
@@ -403,5 +337,84 @@ exports.markMessagesAsRead = async (req, res) => {
   } catch (error) {
     console.error('Error marking messages as read:', error);
     res.status(500).json({ message: 'Failed to mark messages as read' });
+  }
+};
+
+// Get unread counts for all chats
+exports.getUnreadCounts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    console.log('Fetching unread counts for user:', { userId, userEmail: req.user.email });
+    
+    // First verify the user has access to these chats
+    const chats = await Chat.find({ 
+      participants: userId 
+    })
+    .select('_id')
+    .lean();
+    
+    console.log('Found chats:', {
+      count: chats.length,
+      chatIds: chats.map(c => c._id.toString())
+    });
+
+    if (!chats.length) {
+      console.log('No chats found for user, returning empty counts');
+      return res.json([]);
+    }
+
+    const unreadCounts = await Promise.all(
+      chats.map(async (chat) => {
+        try {
+          console.log('Counting unread messages for chat:', chat._id.toString());
+          
+          const count = await Message.countDocuments({
+            chat: chat._id,
+            sender: { $ne: userId },
+            read: false
+          });
+          
+          console.log('Unread count for chat:', {
+            chatId: chat._id.toString(),
+            count
+          });
+          
+          return {
+            chatId: chat._id.toString(),
+            unreadCount: count
+          };
+        } catch (err) {
+          console.error('Error counting unread messages for chat:', {
+            chatId: chat._id.toString(),
+            error: err instanceof Error ? err.message : 'Unknown error'
+          });
+          // Return 0 for this chat but don't fail the whole request
+          return {
+            chatId: chat._id.toString(),
+            unreadCount: 0
+          };
+        }
+      })
+    );
+
+    console.log('Final unread counts:', {
+      userId,
+      counts: unreadCounts
+    });
+
+    res.json(unreadCounts);
+  } catch (error) {
+    console.error('Error in getUnreadCounts:', {
+      userId: req.user._id,
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack
+      } : 'Unknown error'
+    });
+    
+    res.status(500).json({ 
+      message: 'Failed to fetch unread counts',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
