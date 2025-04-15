@@ -19,12 +19,16 @@ try {
   const serviceAccount = {
     projectId: process.env.VITE_FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
   };
 
   // Validate required fields
   if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-    console.error('Missing Firebase Admin credentials. Please check your .env file.');
+    console.error('Missing Firebase Admin credentials:', {
+      hasProjectId: !!serviceAccount.projectId,
+      hasClientEmail: !!serviceAccount.clientEmail,
+      hasPrivateKey: !!serviceAccount.privateKey
+    });
     process.exit(1);
   }
 
