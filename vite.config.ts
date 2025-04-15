@@ -21,12 +21,18 @@ export default defineConfig({
         },
       },
     },
+    sourcemap: true
   },
   server: {
     port: 3000,
     strictPort: true,
+    host: true
+  },
+  preview: {
+    port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+    host: true
   },
   define: {
-    'process.env': {},
+    'process.env': process.env
   },
 })
