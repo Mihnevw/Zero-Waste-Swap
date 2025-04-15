@@ -23,6 +23,36 @@ interface ChatListProps {
   selectedChatId?: string;
 }
 
+// Helper function to convert Chat to ChatListItem format
+const convertChatToListItem = (chat: Chat) => {
+  // Ensure we have valid participants
+  const participants = chat.participants?.map(p => ({
+    _id: p._id,
+    username: p.username,
+    email: p.email,
+    displayName: p.displayName,
+    photoURL: p.photoURL,
+    online: p.online
+  })) || [];
+
+  // Handle lastMessage safely
+  const lastMessage = chat.lastMessage ? {
+    text: chat.lastMessage.text || '',
+    createdAt: typeof chat.lastMessage.createdAt === 'string'
+      ? chat.lastMessage.createdAt
+      : chat.lastMessage.createdAt instanceof Date
+        ? chat.lastMessage.createdAt.toISOString()
+        : new Date().toISOString()
+  } : undefined;
+
+  return {
+    _id: chat._id,
+    participants,
+    lastMessage,
+    updatedAt: chat.updatedAt || new Date().toISOString()
+  };
+};
+
 const ChatList: React.FC<ChatListProps> = ({ onChatSelect, selectedChatId }) => {
   const { chats, currentChat, setCurrentChat, fetchChats, loading, error } = useChat();
   const { user } = useAuth();
@@ -35,8 +65,8 @@ const ChatList: React.FC<ChatListProps> = ({ onChatSelect, selectedChatId }) => 
     }
   }, [user, fetchChats]);
 
-  const filteredChats = chats.filter(chat => {
-    const otherParticipant = chat.participants.find(p => p._id !== user?.uid);
+  const filteredChats = chats.filter((chat: Chat) => {
+    const otherParticipant = chat.participants.find((p: { _id: string; username?: string; displayName?: string; email?: string }) => p._id !== user?.uid);
     const searchString = [
       otherParticipant?.username,
       otherParticipant?.displayName,
@@ -164,10 +194,10 @@ const ChatList: React.FC<ChatListProps> = ({ onChatSelect, selectedChatId }) => 
           </Box>
         ) : filteredChats.length > 0 ? (
           <List disablePadding>
-            {filteredChats.map((chat) => (
+            {filteredChats.map((chat: Chat) => (
               <ChatListItem
                 key={chat._id}
-                chat={chat}
+                chat={convertChatToListItem(chat)}
                 currentUserId={user.uid}
                 selected={chat._id === (selectedChatId || currentChat?._id)}
                 onClick={() => handleChatSelect(chat)}

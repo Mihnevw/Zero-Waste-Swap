@@ -167,22 +167,30 @@ const Navbar = () => {
 
           {/* Chat Icon */}
           {user && (
-            <Tooltip title="Съобщения">
+            <Tooltip title="Messages">
               <IconButton
                 onClick={() => navigate('/chat')}
-                sx={{ mr: 2, color: 'text.primary' }}
+                sx={{ 
+                  mr: 2, 
+                  color: 'text.primary',
+                  position: 'relative'
+                }}
               >
                 <Badge 
                   badgeContent={unreadCount} 
                   color="error"
+                  invisible={unreadCount === 0}
                   sx={{
                     '& .MuiBadge-badge': {
-                      backgroundColor: '#ff1744',
-                      color: '#fff',
-                      fontWeight: 'bold',
+                      backgroundColor: theme.palette.error.main,
+                      color: theme.palette.error.contrastText,
                       minWidth: '20px',
                       height: '20px',
                       borderRadius: '10px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      padding: '0 6px',
+                      transform: 'scale(1) translate(25%, -25%)',
                     }
                   }}
                 >
