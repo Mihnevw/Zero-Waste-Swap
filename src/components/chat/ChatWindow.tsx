@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Message } from '../../types/chat';
+import { Message } from '../../types/message';
+import { User } from '../../types/user';
 import {
   Box,
   Typography,
@@ -24,6 +25,11 @@ import DoneAllIcon from '@mui/icons-material/DoneAll';
 import ImageIcon from '@mui/icons-material/Image';
 
 const TYPING_TIMER_LENGTH = 3000;
+
+// Type guard for User type
+const isUser = (sender: string | User): sender is User => {
+  return typeof sender !== 'string' && sender !== null;
+};
 
 interface ChatWindowProps {
   chatId: string;
@@ -151,15 +157,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
   };
 
   const renderMessageGroup = (message: Message, isLastInGroup: boolean) => {
-    const isCurrentUser = message.sender?._id === user?.uid;
-    const senderName = message.sender?.username || 
-                      message.sender?.displayName || 
-                      message.sender?.email?.split('@')[0] || 
-                      'Unknown User';
+    const sender = message.sender;
+    const isCurrentUser = isUser(sender) ? sender._id === user?.uid : sender === user?.uid;
+    const senderName = isUser(sender)
+      ? sender.username || sender.displayName || sender.email?.split('@')[0]
+      : 'Unknown User';
     
     return (
       <ListItem
-        key={message._id || message.createdAt}
+        key={message._id}
         sx={{
           display: 'flex',
           justifyContent: isCurrentUser ? 'flex-end' : 'flex-start',
@@ -173,7 +179,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
         }}
         disableGutters
       >
-        {!isCurrentUser && isLastInGroup && message.sender && (
+        {!isCurrentUser && isLastInGroup && isUser(message.sender) && (
           <Avatar
             src={message.sender.photoURL || undefined}
             sx={{
@@ -189,13 +195,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
             {senderName[0]?.toUpperCase()}
           </Avatar>
         )}
-        <Box sx={{
-          maxWidth: '65%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: isCurrentUser ? 'flex-end' : 'flex-start',
-          ml: !isCurrentUser ? 5 : 0,
-        }}>
+        <Box
+          sx={{
+            maxWidth: '65%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: isCurrentUser ? 'flex-end' : 'flex-start',
+            ml: !isCurrentUser ? 5 : 0,
+          }}
+        >
           {!isCurrentUser && isLastInGroup && (
             <Typography
               variant="caption"
@@ -242,7 +250,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
               } : {},
             }}
           >
-            <Typography 
+            <Typography
               variant="body1" 
               sx={{ 
                 wordBreak: 'break-word',
@@ -273,7 +281,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
                   opacity: 0.8,
                 }}
               >
-                {formatMessageDate(message.createdAt)}
+                {formatMessageDate(typeof message.createdAt === 'string' 
+                  ? message.createdAt 
+                  : message.createdAt.toISOString())}
               </Typography>
               {isCurrentUser && (
                 <DoneAllIcon 
@@ -333,7 +343,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Enhanced Header */}
+      {/* Header */}
       <Paper
         elevation={2}
         sx={{
@@ -389,20 +399,38 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
         }}
       >
         <List sx={{ width: '100%', pt: 2, pb: 2 }}>
-          {messages.map((message, index) => {
-            const nextMessage = messages[index + 1];
-            // Add null checks for sender
-            const currentSenderId = message.sender?._id;
-            const nextSenderId = nextMessage?.sender?._id;
-            
-            const isLastInGroup = !nextMessage || 
-              !nextSenderId || 
-              !currentSenderId ||
-              nextSenderId !== currentSenderId ||
-              new Date(nextMessage.createdAt).getTime() - new Date(message.createdAt).getTime() > 300000;
+          {messages.length > 0 ? (
+            messages.map((message, index) => {
+              const nextMessage = messages[index + 1];
+              const currentSenderId = isUser(message.sender) ? message.sender._id : message.sender;
+              const nextSenderId = nextMessage && isUser(nextMessage.sender) 
+                ? nextMessage.sender._id 
+                : nextMessage?.sender;
+              
+              const isLastInGroup = !nextMessage || 
+                !nextSenderId || 
+                !currentSenderId ||
+                nextSenderId !== currentSenderId ||
+                new Date(nextMessage.createdAt).getTime() - new Date(message.createdAt).getTime() > 300000;
 
-            return renderMessageGroup(message, isLastInGroup);
-          })}
+              return renderMessageGroup(message, isLastInGroup);
+            })
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                p: 3,
+              }}
+            >
+              <Typography variant="body1" color="text.secondary">
+                No messages yet. Start the conversation!
+              </Typography>
+            </Box>
+          )}
           {typingUsersCount > 0 && (
             <ListItem sx={{ justifyContent: 'flex-start' }}>
               <Avatar sx={{ width: 32, height: 32, mr: 1 }}>U</Avatar>
@@ -424,7 +452,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
         </List>
       </Box>
 
-      {/* Enhanced Input Area */}
+      {/* Input Area */}
       <Paper
         component="form"
         onSubmit={handleSendMessage}
