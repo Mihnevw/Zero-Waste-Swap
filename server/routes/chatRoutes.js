@@ -3,25 +3,21 @@ const router = express.Router();
 const chatController = require('../controllers/chatController');
 const auth = require('../middleware/auth');
 
-// Apply auth middleware to all chat routes
+// Apply auth middleware to all routes
 router.use(auth);
 
-// Get all chats for the authenticated user
+// Get all chats
 router.get('/', chatController.getUserChats);
 
-// Get a specific chat and its messages
-router.get('/:chatId', chatController.getChatMessages);
-
-// Get messages for a specific chat
-router.get('/:chatId/messages', chatController.getChatMessages);
+// Get unread message counts
+router.get('/unread', chatController.getUnreadCounts);
 
 // Create a new chat
 router.post('/', chatController.createChat);
 
-// Send a message
+// Chat-specific routes
+router.get('/:chatId', chatController.getChatMessages);
 router.post('/:chatId/messages', chatController.sendMessage);
-
-// Mark messages as read
 router.put('/:chatId/read', chatController.markMessagesAsRead);
 
 module.exports = router; 

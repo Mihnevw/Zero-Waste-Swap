@@ -27,7 +27,7 @@ const io = require('socket.io')(server, {
       'http://localhost:3000'
     ],
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Authorization', 'Content-Type'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Cache-Control', 'Pragma'],
     credentials: true
   },
   path: '/socket.io/',
@@ -53,7 +53,7 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma'],
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 204,
