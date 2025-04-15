@@ -15,17 +15,14 @@ const server = http.createServer(app);
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:5173',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://zero-waste-swap.onrender.com'
 ].filter(Boolean);
 
 // Configure CORS for Socket.IO
 const io = require('socket.io')(server, {
   cors: {
-    origin: [
-      process.env.CLIENT_URL,
-      'http://localhost:5173',
-      'http://localhost:3000'
-    ],
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Cache-Control', 'Pragma'],
     credentials: true
@@ -39,7 +36,7 @@ const io = require('socket.io')(server, {
   agent: false,
   rejectUnauthorized: false,
   perMessageDeflate: {
-    threshold: 2048 // Size in bytes, compression only for messages larger than this
+    threshold: 2048
   }
 });
 
@@ -57,8 +54,24 @@ app.use(cors({
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 204,
-  maxAge: 86400 // 24 hours
+  maxAge: 86400
 }));
+
+// Content Security Policy middleware
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self';" +
+    "img-src 'self' data: https: http:;" +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval';" +
+    "style-src 'self' 'unsafe-inline';" +
+    "font-src 'self' data: https:;" +
+    "connect-src 'self' https: wss: ws:;" +
+    "frame-src 'self' https:;" +
+    "media-src 'self' https:;"
+  );
+  next();
+});
 
 // Handle preflight requests
 app.options('*', cors());
