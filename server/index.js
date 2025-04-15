@@ -4,12 +4,16 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const chatRoutes = require('./routes/chatRoutes');
+const path = require('path');
 require('dotenv').config();
 const admin = require('firebase-admin');
 const Chat = require('./models/Chat');
 
 const app = express();
 const server = http.createServer(app);
+
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Define allowed origins
 const allowedOrigins = [
@@ -62,13 +66,15 @@ app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self';" +
-    "img-src 'self' data: https: http:;" +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval';" +
-    "style-src 'self' 'unsafe-inline';" +
+    "img-src 'self' data: blob: https: http:;" +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;" +
+    "style-src 'self' 'unsafe-inline' https:;" +
     "font-src 'self' data: https:;" +
     "connect-src 'self' https: wss: ws:;" +
     "frame-src 'self' https:;" +
-    "media-src 'self' https:;"
+    "media-src 'self' https:;" +
+    "object-src 'none';" +
+    "base-uri 'self';"
   );
   next();
 });
