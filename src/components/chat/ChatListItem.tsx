@@ -5,7 +5,6 @@ import {
   Avatar,
   ListItemText,
   Typography,
-  Box,
   useTheme,
   Badge,
 } from '@mui/material';
