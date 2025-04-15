@@ -23,12 +23,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
-    host: true,
-  },
-  preview: {
-    port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
-    host: true,
+    port: 3000,
+    strictPort: true,
   },
   define: {
     'process.env': {},
