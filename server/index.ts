@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static files from the React app build directory
-app.use(express.static(path.join(__dirname, '../dist')));
+app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/zero-waste-swap';
@@ -77,7 +77,7 @@ app.get('/health', (req, res) => {
 
 // Handle React routing, return all requests to React app
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
 const PORT = process.env.PORT || 3001;
