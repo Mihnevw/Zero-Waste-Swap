@@ -22,7 +22,7 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response) => 
         const unreadCount = await Message.countDocuments({
           chat: chat._id,
           sender: { $ne: req.user._id },
-          read: false
+          readBy: { $ne: req.user._id }
         });
         return {
           ...chat.toObject(),
@@ -69,9 +69,9 @@ export const getChat = async (req: AuthenticatedRequest, res: Response) => {
       {
         chat: chat._id,
         sender: { $ne: req.user._id },
-        read: false
+        readBy: { $ne: req.user._id }
       },
-      { read: true }
+      { $addToSet: { readBy: req.user._id } }
     );
 
     res.json(chat);
@@ -112,8 +112,8 @@ export const getUnreadCounts = async (req: AuthenticatedRequest, res: Response) 
           
           const count = await Message.countDocuments({
             chat: chat._id,
-            sender: { $ne: req.user._id }, // Use _id instead of uid
-            read: false
+            sender: { $ne: req.user._id },
+            readBy: { $ne: req.user._id }
           });
           
           console.log('Unread count for chat:', {
@@ -221,21 +221,37 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 // Mark messages as read
-export const markAsRead = async (req: AuthenticatedRequest, res: Response) => {
+export const markMessagesAsRead = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { chatId } = req.params;
+    const userId = req.user._id;
 
-    await Message.updateMany(
-      {
-        chat: chatId,
-        sender: { $ne: req.user._id },
-        read: false
-      },
-      { read: true }
+    // Find all unread messages in the chat
+    const unreadMessages = await Message.find({
+      chat: chatId,
+      readBy: { $ne: userId }
+    });
+
+    // Mark each message as read by the user
+    const updatePromises = unreadMessages.map(message => 
+      Message.findByIdAndUpdate(
+        message._id,
+        { $addToSet: { readBy: userId } },
+        { new: true }
+      )
     );
 
-    res.json({ message: 'Messages marked as read' });
+    await Promise.all(updatePromises);
+
+    // Get updated unread count
+    const unreadCount = await Message.countDocuments({
+      chat: chatId,
+      readBy: { $ne: userId }
+    });
+
+    res.json({ success: true, unreadCount });
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    console.error('Error marking messages as read:', error);
+    res.status(500).json({ message: 'Failed to mark messages as read' });
   }
 }; 

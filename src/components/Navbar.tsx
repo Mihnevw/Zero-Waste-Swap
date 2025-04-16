@@ -177,9 +177,9 @@ const Navbar = () => {
                 }}
               >
                 <Badge 
-                  badgeContent={unreadCount} 
+                  badgeContent={unreadCount || 0} 
                   color="error"
-                  invisible={unreadCount === 0}
+                  invisible={!unreadCount}
                   sx={{
                     '& .MuiBadge-badge': {
                       backgroundColor: theme.palette.error.main,

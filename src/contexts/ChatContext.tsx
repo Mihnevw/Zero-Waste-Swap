@@ -114,7 +114,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token, user, apiUrl]);
 
   // Calculate total unread count
-  const unreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+  const unreadCount = Object.values(unreadCounts).reduce((sum, count) => {
+    const numCount = Number(count);
+    return sum + (isNaN(numCount) ? 0 : numCount);
+  }, 0);
 
   const refreshUnreadCounts = useCallback(async () => {
     if (!token || !user) return;
@@ -144,10 +147,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid response format for unread counts');
       }
 
-      setUnreadCounts(counts.reduce((acc: { [key: string]: number }, item: { chatId: string, unreadCount: number }) => {
-        acc[item.chatId] = item.unreadCount;
+      const newUnreadCounts = counts.reduce((acc: { [key: string]: number }, item: { chatId: string, unreadCount: number }) => {
+        const count = Number(item.unreadCount);
+        acc[item.chatId] = isNaN(count) ? 0 : count;
         return acc;
-      }, {}));
+      }, {});
+
+      setUnreadCounts(newUnreadCounts);
     } catch (err) {
       console.error('Error fetching unread counts:', err);
       setUnreadCounts({});
@@ -218,14 +224,36 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token, user, apiUrl]);
 
-  const handleSetCurrentChat = useCallback((chat: Chat | null) => {
+  const handleSetCurrentChat = useCallback(async (chat: Chat | null) => {
     setCurrentChat(chat);
     if (chat?._id) {
+      // Mark messages as read when opening chat
+      try {
+        const response = await fetch(`${apiUrl}/api/chats/${chat._id}/read`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const { unreadCount } = await response.json();
+          // Update unread counts in the UI
+          setUnreadCounts(prev => ({
+            ...prev,
+            [chat._id]: unreadCount
+          }));
+        }
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+
       fetchMessages(chat._id);
     } else {
       setMessages([]);
     }
-  }, [fetchMessages]);
+  }, [fetchMessages, token, apiUrl]);
 
   const sendMessage = async (chatId: string, text: string) => {
     if (!token || !user) throw new Error('Not authenticated');

@@ -5,7 +5,7 @@ export interface IMessage extends Document {
   sender: string; // Firebase UID
   text: string;
   createdAt: Date;
-  read: boolean;
+  readBy: string[]; // Array of user IDs who have read the message
 }
 
 const messageSchema = new Schema<IMessage>({
@@ -27,15 +27,16 @@ const messageSchema = new Schema<IMessage>({
     type: Date,
     default: Date.now
   },
-  read: {
-    type: Boolean,
-    default: false
-  }
+  readBy: [{
+    type: String,
+    default: []
+  }]
 });
 
 // Add indexes for better query performance
 messageSchema.index({ chat: 1, createdAt: -1 });
 messageSchema.index({ sender: 1 });
+messageSchema.index({ readBy: 1 });
 
 // Ensure dates are always returned as ISO strings
 messageSchema.set('toJSON', {

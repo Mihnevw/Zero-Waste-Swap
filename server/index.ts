@@ -21,11 +21,16 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Enable CORS with specific options
 app.use(cors({
-  origin: '*', // Allow all origins during development
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 // Parse JSON bodies
 app.use(express.json());
@@ -37,10 +42,10 @@ const httpServer = createServer(app);
 // Socket.IO configuration
 const io = new Server(httpServer, {
   cors: {
-    origin: '*', // Allow all origins during development
-    methods: ['GET', 'POST'],
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma']
   },
   transports: ['websocket', 'polling'],
   allowEIO3: true,

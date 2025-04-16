@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction, RequestHandler } from 'express';
-import { getUserChats, getChat, createChat, sendMessage, markAsRead, getUnreadCounts } from '../controllers/chatController';
+import { getUserChats, getChat, createChat, sendMessage, getUnreadCounts, markMessagesAsRead } from '../controllers/chatController';
 import auth from '../middleware/auth';
 import { AuthenticatedRequest } from '../types/auth';
 
@@ -61,11 +61,11 @@ router.post('/:chatId/messages', (async (req: AuthenticatedRequest, res: Respons
   }
 }) as unknown as RequestHandler);
 
-// Mark messages as read
+// Mark messages as read in a chat
 router.put('/:chatId/read', (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const messages = await markAsRead(req, res);
-    res.json(messages);
+    const result = await markMessagesAsRead(req, res);
+    res.json(result);
   } catch (error) {
     console.error('Error marking messages as read:', error);
     res.status(500).json({ error: 'Failed to mark messages as read' });
