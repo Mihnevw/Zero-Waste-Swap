@@ -45,10 +45,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         transports: ['websocket', 'polling'],
         reconnection: true,
-        reconnectionAttempts: Infinity,
+        reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 20000,
+        timeout: 30000,
         forceNew: true,
         autoConnect: true
       });

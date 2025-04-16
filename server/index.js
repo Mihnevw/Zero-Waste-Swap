@@ -5,6 +5,9 @@ const http = require('http');
 const socketIo = require('socket.io');
 const chatRoutes = require('./routes/chatRoutes');
 const path = require('path');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 require('dotenv').config();
 const admin = require('firebase-admin');
 const Chat = require('./models/Chat');
@@ -12,8 +15,43 @@ const Chat = require('./models/Chat');
 const app = express();
 const server = http.createServer(app);
 
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+      fontSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https:", "wss:", "ws:"],
+      frameSrc: ["'self'", "https:"],
+      mediaSrc: ["'self'", "https:"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"]
+    }
+  }
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+// Compression middleware
+app.use(compression());
+
+// Request size limit
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // Serve static files from the public directory
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  etag: true
+}));
 
 // Define allowed origins
 const allowedOrigins = [
@@ -37,8 +75,6 @@ const io = require('socket.io')(server, {
   pingTimeout: 60000,
   pingInterval: 25000,
   upgradeTimeout: 30000,
-  agent: false,
-  rejectUnauthorized: false,
   perMessageDeflate: {
     threshold: 2048
   }
@@ -61,34 +97,13 @@ app.use(cors({
   maxAge: 86400
 }));
 
-// Content Security Policy middleware
-app.use((req, res, next) => {
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self';" +
-    "img-src 'self' data: blob: https: http:;" +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;" +
-    "style-src 'self' 'unsafe-inline' https:;" +
-    "font-src 'self' data: https:;" +
-    "connect-src 'self' https: wss: ws:;" +
-    "frame-src 'self' https:;" +
-    "media-src 'self' https:;" +
-    "object-src 'none';" +
-    "base-uri 'self';"
-  );
-  next();
-});
-
 // Handle preflight requests
 app.options('*', cors());
-
-app.use(express.json());
 
 // Logging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   console.log('Origin:', req.headers.origin);
-  console.log('Headers:', req.headers);
   next();
 });
 
@@ -100,7 +115,8 @@ app.get('/health', (req, res) => {
   const healthcheck = {
     uptime: process.uptime(),
     message: 'OK',
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   };
   try {
     res.status(200).json(healthcheck);
@@ -113,7 +129,10 @@ app.get('/health', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
-  res.status(500).json({ message: 'Internal server error' });
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 // Socket authentication middleware
@@ -199,16 +218,17 @@ io.on('connection', (socket) => {
   });
 });
 
-// Log all socket events in development
-if (process.env.NODE_ENV === 'development') {
-  const originalEmit = io.emit.bind(io);
-  io.emit = function(event, ...args) {
-    console.log('Socket.IO emit:', { event, args });
-    originalEmit(event, ...args);
-  };
-}
-
-console.log('Socket.IO path:', io.path());
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    mongoose.connection.close(false, () => {
+      console.log('MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+});
 
 // MongoDB connection
 const connectToMongoDB = async () => {
@@ -217,14 +237,17 @@ const connectToMongoDB = async () => {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      family: 4
+    });
     console.log('Connected to MongoDB');
     
     const startServer = (port) => {
       server.listen(port, '0.0.0.0', () => {
         console.log(`Server running on port ${port}`);
         console.log(`CORS enabled for origins: ${allowedOrigins.join(', ')}`);
-        console.log('Socket.IO path:', io.path());
       }).on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
           console.log(`Port ${port} is busy, trying ${port + 1}`);
@@ -232,6 +255,7 @@ const connectToMongoDB = async () => {
           startServer(port + 1);
         } else {
           console.error('Server error:', err);
+          process.exit(1);
         }
       });
     };
