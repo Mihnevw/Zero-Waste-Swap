@@ -3,63 +3,73 @@ import { getUserChats, getChat, createChat, sendMessage, markAsRead, getUnreadCo
 import auth from '../middleware/auth';
 import { AuthenticatedRequest } from '../types/auth';
 
-type AuthenticatedRequestHandler = RequestHandler;
-
 const router = express.Router();
 
-// Apply auth middleware to all routes
+// Apply authentication middleware to all routes
 router.use(auth);
 
-// Get all chats
+// Get all chats for the authenticated user
 router.get('/', (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     await getUserChats(req, res);
   } catch (error) {
-    next(error);
+    console.error('Error in chat routes:', error);
+    res.status(500).json({ error: 'Failed to fetch chats' });
   }
-}) as unknown as AuthenticatedRequestHandler);
+}) as unknown as RequestHandler);
 
 // Get unread message counts
 router.get('/unread', (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     await getUnreadCounts(req, res);
   } catch (error) {
-    next(error);
+    console.error('Error getting unread counts:', error);
+    res.status(500).json({ error: 'Failed to get unread counts' });
   }
-}) as unknown as AuthenticatedRequestHandler);
+}) as unknown as RequestHandler);
 
 // Create a new chat
 router.post('/', (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    await createChat(req, res);
+    const chat = await createChat(req, res);
+    res.json(chat);
   } catch (error) {
-    next(error);
+    console.error('Error creating chat:', error);
+    res.status(500).json({ error: 'Failed to create chat' });
   }
-}) as unknown as AuthenticatedRequestHandler);
+}) as unknown as RequestHandler);
 
-// Chat-specific routes
+// Get messages for a specific chat
 router.get('/:chatId', (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    await getChat(req, res);
+    const messages = await getChat(req, res);
+    res.json(messages);
   } catch (error) {
-    next(error);
+    console.error('Error getting messages:', error);
+    res.status(500).json({ error: 'Failed to get messages' });
   }
-}) as unknown as AuthenticatedRequestHandler);
+}) as unknown as RequestHandler);
 
+// Send a message in a chat
 router.post('/:chatId/messages', (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    await sendMessage(req, res);
+    const message = await sendMessage(req, res);
+    res.json(message);
   } catch (error) {
-    next(error);
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
   }
-}) as unknown as AuthenticatedRequestHandler);
+}) as unknown as RequestHandler);
 
+// Mark messages as read
 router.put('/:chatId/read', (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    await markAsRead(req, res);
+    const messages = await markAsRead(req, res);
+    res.json(messages);
   } catch (error) {
-    next(error);
+    console.error('Error marking messages as read:', error);
+    res.status(500).json({ error: 'Failed to mark messages as read' });
   }
-}) as unknown as AuthenticatedRequestHandler);
+}) as unknown as RequestHandler);
 
 export default router; 

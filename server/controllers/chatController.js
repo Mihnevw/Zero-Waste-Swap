@@ -56,7 +56,7 @@ exports.getUserChats = async (req, res) => {
     res.json(chatsWithUnread);
   } catch (error) {
     console.error('Error fetching chats:', error);
-    res.status(500).json({ message: 'Failed to fetch chats' });
+    res.status(500).json({ message: 'Failed to fetch chats', error: error.message });
   }
 };
 
@@ -147,7 +147,7 @@ exports.getChatMessages = async (req, res) => {
 exports.createChat = async (req, res) => {
   try {
     const { participantId } = req.body;
-    const currentUserId = req.user._id; // This will be the Firebase UID
+    const currentUserId = req.user._id;
     
     console.log('Creating chat:', { currentUserId, participantId });
 
@@ -192,7 +192,7 @@ exports.createChat = async (req, res) => {
     res.status(201).json(chat);
   } catch (error) {
     console.error('Error creating chat:', error);
-    res.status(500).json({ message: 'Failed to create chat' });
+    res.status(500).json({ message: 'Failed to create chat', error: error.message });
   }
 };
 
@@ -204,6 +204,11 @@ exports.sendMessage = async (req, res) => {
     const senderId = req.user._id;
 
     console.log('Sending message:', { chatId, senderId, textLength: text?.length });
+
+    // Validate input
+    if (!text || text.trim().length === 0) {
+      return res.status(400).json({ message: 'Message text is required' });
+    }
 
     // Find the chat
     const chat = await Chat.findById(chatId);
@@ -222,7 +227,7 @@ exports.sendMessage = async (req, res) => {
     const message = new Message({
       chat: chatId,
       sender: senderId,
-      text,
+      text: text.trim(),
       read: false
     });
 
@@ -248,53 +253,23 @@ exports.sendMessage = async (req, res) => {
 
         if (recipient && recipient.email) {
           try {
-            // Send email notification
-            await sendMessageNotification(
-              recipient.email,
-              req.user.name || req.user.email,
-              text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-              chatId
-            );
-            console.log('Email notification sent to:', recipient.email);
-          } catch (emailError) {
-            console.error('Failed to send email notification:', {
-              error: emailError.message,
-              recipient: recipient.email,
-              chatId,
-              stack: emailError.stack
+            await sendMessageNotification(recipient.email, {
+              senderName: req.user.displayName || req.user.email,
+              messageText: text
             });
-            // Continue with the request even if email fails
+          } catch (emailError) {
+            console.error('Error sending email notification:', emailError);
           }
-        } else {
-          console.log('Recipient has no email address:', recipientId);
         }
-      } catch (error) {
-        console.error('Error getting recipient info:', {
-          error: error.message,
-          recipientId,
-          chatId,
-          stack: error.stack
-        });
-        // Continue with the request even if we can't get recipient info
+      } catch (firebaseError) {
+        console.error('Error getting recipient info:', firebaseError);
       }
-    } else {
-      console.log('No recipient found for chat:', chatId);
     }
 
-    // Get the populated message for response
-    const populatedMessage = {
-      ...message.toObject(),
-      sender: {
-        _id: senderId,
-        name: req.user.name,
-        email: req.user.email
-      }
-    };
-
-    res.status(201).json(populatedMessage);
+    res.status(201).json(message);
   } catch (error) {
     console.error('Error sending message:', error);
-    res.status(500).json({ message: 'Error sending message', error: error.message });
+    res.status(500).json({ message: 'Failed to send message', error: error.message });
   }
 };
 

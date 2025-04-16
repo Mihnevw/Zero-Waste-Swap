@@ -12,7 +12,6 @@ import {
   IconButton,
   Paper,
   Badge,
-  CircularProgress,
   useTheme,
   List,
   ListItem,
@@ -37,68 +36,60 @@ interface ChatWindowProps {
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
-  const theme = useTheme();
   const { currentChat, messages, sendMessage, socket } = useChat();
   const { user } = useAuth();
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const theme = useTheme();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle typing events
+  // Handle socket events
   useEffect(() => {
-    if (!socket || !currentChat) {
-      console.log('Socket or currentChat not available', { socket: !!socket, chatId: currentChat?._id });
-      return;
-    }
+    if (!socket || !chatId) return;
 
-    console.log('Setting up socket listeners for chat:', currentChat._id);
-    
-    const handleTypingStart = (data: { userId: string, chatId: string }) => {
-      console.log('Typing start event received:', data);
-      if (data.chatId === currentChat._id && data.userId !== user?.uid) {
-        setTypingUsers(prev => new Set(prev).add(data.userId));
+    const handleMessage = (message: Message) => {
+      if (message.chat === chatId) {
+        // Messages are managed by the ChatContext
+        console.log('New message received:', message);
       }
     };
 
-    const handleTypingStop = (data: { userId: string, chatId: string }) => {
-      console.log('Typing stop event received:', data);
-      if (data.chatId === currentChat._id && data.userId !== user?.uid) {
+    const handleTyping = (data: { chatId: string; userId: string; isTyping: boolean }) => {
+      if (data.chatId === chatId) {
         setTypingUsers(prev => {
           const newSet = new Set(prev);
-          newSet.delete(data.userId);
+          if (data.isTyping) {
+            newSet.add(data.userId);
+          } else {
+            newSet.delete(data.userId);
+          }
           return newSet;
         });
       }
     };
 
-    socket.on('typing:start', handleTypingStart);
-    socket.on('typing:stop', handleTypingStop);
+    socket.on('message', handleMessage);
+    socket.on('typing', handleTyping);
 
     return () => {
-      console.log('Cleaning up socket listeners');
-      socket.off('typing:start', handleTypingStart);
-      socket.off('typing:stop', handleTypingStop);
+      socket.off('message', handleMessage);
+      socket.off('typing', handleTyping);
     };
-  }, [socket, currentChat, user?.uid]);
+  }, [socket, chatId]);
 
-  const emitTyping = () => {
-    if (!socket || !currentChat || !user) return;
+  // Handle typing indicator
+  const handleTyping = () => {
+    if (!socket || !chatId || !user) return;
 
-    if (!isTyping) {
-      setIsTyping(true);
-      socket.emit('typing:start', { chatId: currentChat._id, userId: user.uid });
-    }
+    setIsTyping(true);
+    socket.emit('typing', { chatId, isTyping: true });
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -106,13 +97,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
 
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      socket.emit('typing:stop', { chatId: currentChat._id, userId: user.uid });
+      socket.emit('typing', { chatId, isTyping: false });
     }, TYPING_TIMER_LENGTH);
   };
 
-  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewMessage(e.target.value);
-    emitTyping();
+  // Handle message submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !chatId) return;
+
+    try {
+      await sendMessage(chatId, newMessage);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   };
 
   const formatMessageDate = (date: string) => {
@@ -126,42 +125,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentChat || !newMessage.trim() || !user) {
-      console.log('Cannot send message:', { 
-        hasChat: !!currentChat, 
-        hasMessage: !!newMessage.trim(), 
-        hasUser: !!user 
-      });
-      return;
-    }
-
-    try {
-      console.log('Sending message:', { chatId: currentChat._id, text: newMessage.trim() });
-      setLoading(true);
-      await sendMessage(currentChat._id, newMessage.trim());
-      setNewMessage('');
-      
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-        setIsTyping(false);
-        socket?.emit('typing:stop', { chatId: currentChat._id, userId: user.uid });
-      }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      alert('Failed to send message. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const renderMessageGroup = (message: Message, isLastInGroup: boolean) => {
     const sender = message.sender;
     const isCurrentUser = isUser(sender) ? sender._id === user?.uid : sender === user?.uid;
-    const senderName = isUser(sender)
-      ? sender.username || sender.displayName || sender.email?.split('@')[0]
-      : 'Unknown User';
+    
+    // Safely get sender name with fallbacks
+    const getSenderName = () => {
+      if (!sender) return 'Unknown User';
+      if (isUser(sender)) {
+        return sender.username || sender.displayName || sender.email?.split('@')[0] || 'Unknown User';
+      }
+      return 'Unknown User';
+    };
+    
+    const senderName = getSenderName();
     
     return (
       <ListItem
@@ -455,7 +432,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
       {/* Input Area */}
       <Paper
         component="form"
-        onSubmit={handleSendMessage}
+        onSubmit={handleSubmit}
         sx={{
           p: 2,
           bgcolor: theme.palette.background.paper,
@@ -476,7 +453,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
           variant="outlined"
           placeholder="Type a message..."
           value={newMessage}
-          onChange={handleMessageChange}
+          onChange={(e) => {
+            setNewMessage(e.target.value);
+            handleTyping();
+          }}
           size="small"
           sx={{
             '& .MuiOutlinedInput-root': {
@@ -490,7 +470,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
         <IconButton 
           type="submit" 
           color="primary" 
-          disabled={!newMessage.trim() || loading}
+          disabled={!newMessage.trim()}
           sx={{
             bgcolor: theme.palette.primary.main,
             color: theme.palette.primary.contrastText,
@@ -502,11 +482,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
             },
           }}
         >
-          {loading ? (
-            <CircularProgress size={24} color="inherit" />
-          ) : (
-            <SendIcon />
-          )}
+          <SendIcon />
         </IconButton>
       </Paper>
     </Box>

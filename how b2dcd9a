@@ -1,0 +1,10 @@
+[33me78d5c0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Add dist folder
+[33mf133be7[m Another path
+[33m2f8e3dc[m Change path
+[33mb2dcd9a[m static files from the Express server
+[33m3cf3c4f[m Init
+[33m3634d2c[m Returning old code
+[33mf4517c8[m Remove
+[33m4a6b309[m Fix port
+[33mf14d567[m load a favicon
+[33me319209[m health check request from Render

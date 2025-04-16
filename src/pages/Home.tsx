@@ -104,14 +104,25 @@ const Home: React.FC = () => {
 
   const fetchRecentListings = async () => {
     try {
+      setLoading(true);
+      setError(null);
+
+      // Check if user is authenticated
+      if (!user) {
+        console.log('User not authenticated, fetching public listings');
+      }
+
       const q = query(
         collection(db, 'listings'),
         orderBy('createdAt', 'desc'),
         limit(8)
       );
+
       const querySnapshot = await getDocs(q);
       const listings = querySnapshot.docs.map(doc => {
         const data = doc.data();
+        console.log('Raw listing data:', data); // Debug log
+        
         // Get the user ID from the document path or data
         const userId = data.userId || doc.ref.parent.parent?.id;
         
@@ -122,24 +133,43 @@ const Home: React.FC = () => {
           return null;
         }
 
-        return {
+        // Ensure all required fields are present
+        const listing = {
           id: doc.id,
-          ...data,
+          title: data.title || 'Untitled',
+          description: data.description || '',
+          category: data.category || 'other',
+          condition: data.condition || 'good',
+          images: Array.isArray(data.images) ? data.images : [],
+          userEmail: data.userEmail || data.email || '',
+          userName: data.userName || data.firstName || 'Anonymous',
+          createdAt: data.createdAt?.toDate() || new Date(),
+          location: data.location || {
+            address: '',
+            latitude: 0,
+            longitude: 0
+          },
           userId: userId,
           user: {
             _id: userId,
             username: data.userName || data.firstName || 'Anonymous',
-            email: data.userEmail || data.email
-          },
-          createdAt: data.createdAt?.toDate() || new Date(),
-        } as Listing;
+            email: data.userEmail || data.email || ''
+          }
+        };
+
+        console.log('Processed listing:', listing); // Debug log
+        return listing;
       }).filter(listing => listing !== null); // Filter out listings without userId
 
       console.log('Fetched listings:', listings); // Debug log
       setRecentListings(listings);
     } catch (error) {
       console.error('Error fetching recent listings:', error);
-      setError('Възникна грешка при зареждане на обявите');
+      if (error instanceof Error) {
+        setError(`Възникна грешка при зареждане на обявите: ${error.message}`);
+      } else {
+        setError('Възникна грешка при зареждане на обявите');
+      }
     } finally {
       setLoading(false);
     }
