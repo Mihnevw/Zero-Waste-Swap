@@ -17,8 +17,9 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["vite/client", "node"],
     "allowJs": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "typeRoots": ["./node_modules/@types", "./src", "./"]
   },
-  "include": ["src"],
+  "include": ["src", "vite-env.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,6 +1,7 @@
-import { getAuthToken, isAuthenticated } from '../utils/auth';
+import { getAuthToken } from '../utils/auth';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Get the API URL from environment variables with type assertion
+const API_URL = (import.meta as any).env.VITE_API_URL;
 
 interface ApiOptions extends RequestInit {
   headers?: Record<string, string>;
@@ -17,7 +18,8 @@ interface ApiService {
 
 const apiService: ApiService = {
   async fetchWithAuth<T>(url: string, options: ApiOptions = {}): Promise<T> {
-    if (!isAuthenticated()) {
+    const token = await getAuthToken();
+    if (!token) {
       console.error('User is not authenticated');
       throw new Error('User is not authenticated');
     }
@@ -29,7 +31,6 @@ const apiService: ApiService = {
         timestamp: new Date().toISOString()
       });
 
-      const token = await getAuthToken();
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -60,7 +61,7 @@ const apiService: ApiService = {
       if (response.status === 401) {
         console.log('Token expired, attempting refresh');
         // Token might be expired, try to refresh
-        const newToken = await getAuthToken(true); // Force token refresh
+        const newToken = await getAuthToken(); // Get a fresh token
         headers.Authorization = `Bearer ${newToken}`;
         
         console.log('Retrying request with new token');

@@ -1,4 +1,3 @@
-import { Socket as ClientSocket, io } from 'socket.io-client';
 import { getAuth } from 'firebase/auth';
 
 interface ChatHistoryEvent {
@@ -35,7 +34,7 @@ const getAuthToken = async (): Promise<string | null> => {
   return user.getIdToken();
 };
 
-const createSocket = async (): Promise<ClientSocket | null> => {
+const createSocket = async (): Promise<any> => {
   const token = await getAuthToken();
   if (!token) {
     console.error('No auth token available');
@@ -44,7 +43,14 @@ const createSocket = async (): Promise<ClientSocket | null> => {
 
   console.log('Creating socket connection with token');
 
-  return io(import.meta.env.VITE_API_URL, {
+  // Use dynamic import for socket.io-client
+  const socketIO = await import('socket.io-client');
+  const io = socketIO.default;
+  
+  // Get the API URL from environment variables
+  const apiUrl = (import.meta as any).env.VITE_API_URL;
+  
+  return io(apiUrl, {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 5,
@@ -54,18 +60,14 @@ const createSocket = async (): Promise<ClientSocket | null> => {
     autoConnect: true,
     forceNew: true,
     path: '/socket.io/',
-    withCredentials: true,
-    auth: { token },
-    extraHeaders: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    }
+    auth: { token }
   });
 };
 
-let socket: ClientSocket | null = null;
+// Use a type assertion to fix the Socket type issue
+let socket: any = null;
 
-const initializeSocket = async (): Promise<ClientSocket | null> => {
+const initializeSocket = async (): Promise<any> => {
   try {
     socket = await createSocket();
     if (!socket) return null;
