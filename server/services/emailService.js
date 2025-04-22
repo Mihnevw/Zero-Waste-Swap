@@ -46,15 +46,27 @@ const sendMessageNotification = async (recipientEmail, senderName, messagePrevie
       throw new Error('Email credentials not configured');
     }
 
+    // Handle case where senderName might be an object
+    let displayName = senderName;
+    if (typeof senderName === 'object' && senderName !== null) {
+      displayName = senderName.senderName || senderName.displayName || 'Unknown User';
+    }
+
+    // Handle case where messagePreview might be an object
+    let messageText = messagePreview;
+    if (typeof messagePreview === 'object' && messagePreview !== null) {
+      messageText = messagePreview.messageText || messagePreview.text || 'New message';
+    }
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: recipientEmail,
-      subject: `New message from ${senderName}`,
+      subject: `New message from ${displayName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
           <h2 style="color: #333;">You have a new message!</h2>
-          <p><strong>From:</strong> ${senderName}</p>
-          <p><strong>Message:</strong> ${messagePreview}</p>
+          <p><strong>From:</strong> ${displayName}</p>
+          <p><strong>Message:</strong> ${messageText}</p>
           <p>Click the button below to view the message:</p>
           <a href="${process.env.CLIENT_URL}/chat/${chatId}" 
              style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px;">
@@ -71,7 +83,7 @@ const sendMessageNotification = async (recipientEmail, senderName, messagePrevie
     console.log('Email sent successfully:', {
       messageId: info.messageId,
       recipient: recipientEmail,
-      preview: messagePreview
+      preview: messageText
     });
   } catch (error) {
     console.error('Error sending email notification:', {

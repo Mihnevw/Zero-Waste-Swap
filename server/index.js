@@ -1,3 +1,19 @@
+const dotenv = require('dotenv');
+const result = dotenv.config();
+
+if (result.error) {
+  console.error('Error loading .env file:', result.error);
+  process.exit(1);
+}
+
+// Debug environment variables
+console.log('Environment Variables Debug:', {
+  NODE_ENV: process.env.NODE_ENV,
+  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+  FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+  FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY ? 'Private key exists' : 'Private key missing'
+});
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -8,8 +24,7 @@ const path = require('path');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
-require('dotenv').config();
-const admin = require('firebase-admin');
+const { admin } = require('./config/firebase-admin');
 const Chat = require('./models/Chat');
 
 const app = express();

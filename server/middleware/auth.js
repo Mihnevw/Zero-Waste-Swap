@@ -1,48 +1,7 @@
-const admin = require('firebase-admin');
+const { auth } = require('../config/firebase-admin');
 require('dotenv').config({ path: './.env' });
 
-// Initialize Firebase Admin
-try {
-  console.log('Initializing Firebase Admin...');
-  
-  // Log environment variables for debugging
-  console.log('Environment variables:', {
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY ? 'Private key exists' : 'Private key is undefined'
-  });
-
-  if (!process.env.FIREBASE_PRIVATE_KEY) {
-    throw new Error('FIREBASE_PRIVATE_KEY is not defined in environment variables');
-  }
-
-  const serviceAccount = {
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-  };
-
-  // Validate required fields
-  if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-    console.error('Missing Firebase Admin credentials:', {
-      hasProjectId: !!serviceAccount.projectId,
-      hasClientEmail: !!serviceAccount.clientEmail,
-      hasPrivateKey: !!serviceAccount.privateKey
-    });
-    process.exit(1);
-  }
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-
-  console.log('Firebase Admin initialized successfully');
-} catch (error) {
-  console.error('Error initializing Firebase Admin:', error);
-  process.exit(1);
-}
-
-const auth = async (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -57,7 +16,7 @@ const auth = async (req, res, next) => {
     }
 
     // Verify the Firebase token
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const decodedToken = await auth.verifyIdToken(token);
     if (!decodedToken) {
       console.log('Invalid token verification result');
       return res.status(401).json({ message: 'Invalid token' });
@@ -88,4 +47,4 @@ const auth = async (req, res, next) => {
   }
 };
 
-module.exports = auth; 
+module.exports = authMiddleware; 

@@ -253,10 +253,12 @@ exports.sendMessage = async (req, res) => {
 
         if (recipient && recipient.email) {
           try {
-            await sendMessageNotification(recipient.email, {
-              senderName: req.user.displayName || req.user.email,
-              messageText: text
-            });
+            await sendMessageNotification(
+              recipient.email,
+              req.user.displayName || req.user.email,
+              text,
+              chatId
+            );
           } catch (emailError) {
             console.error('Error sending email notification:', emailError);
           }

@@ -1,7 +1,5 @@
-import admin from 'firebase-admin';
-import dotenv from 'dotenv';
-
-dotenv.config();
+const admin = require('firebase-admin');
+require('dotenv').config();
 
 // Initialize Firebase Admin with service account
 if (!admin.apps.length) {
@@ -28,10 +26,10 @@ if (!admin.apps.length) {
   }
 }
 
-export const auth = admin.auth();
+const auth = admin.auth();
 
 // Helper function to verify token
-export const verifyToken = async (token: string) => {
+const verifyToken = async (token) => {
   try {
     const decodedToken = await auth.verifyIdToken(token);
     return decodedToken;
@@ -39,4 +37,6 @@ export const verifyToken = async (token: string) => {
     console.error('Token verification error:', error);
     throw new Error('Invalid token: ' + error.message);
   }
-}; 
+};
+
+module.exports = { admin, auth, verifyToken }; 
