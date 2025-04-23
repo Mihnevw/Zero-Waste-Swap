@@ -1,10 +1,9 @@
 const dotenv = require('dotenv');
-const result = dotenv.config();
+// Try to load .env file but don't fail if it doesn't exist
+dotenv.config();
 
-if (result.error) {
-  console.error('Error loading .env file:', result.error);
-  process.exit(1);
-}
+// Set default NODE_ENV if not defined
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 // Debug environment variables
 console.log('Environment Variables Debug:', {
