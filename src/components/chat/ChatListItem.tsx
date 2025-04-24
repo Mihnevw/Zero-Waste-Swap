@@ -14,7 +14,7 @@ interface ChatListItemProps {
   chat: {
     _id: string;
     participants: Array<{
-      _id: string;
+      uid: string;
       username?: string;
       email?: string;
       displayName?: string;
@@ -41,13 +41,39 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   unreadCount = 0,
 }) => {
   const theme = useTheme();
-  const otherParticipant = chat.participants.find(p => p._id !== currentUserId);
+  
+  // Debug log for all participants
+  console.log('ChatListItem participants:', {
+    chatId: chat._id,
+    allParticipants: chat.participants.map(p => ({
+      uid: p.uid,
+      username: p.username,
+      email: p.email,
+      displayName: p.displayName
+    })),
+    currentUserId
+  });
+
+  const otherParticipant = chat.participants.find(p => p.uid !== currentUserId);
+
+  // Debug log for other participant
+  console.log('ChatListItem otherParticipant:', {
+    chatId: chat._id,
+    currentUserId,
+    otherParticipant: otherParticipant ? {
+      uid: otherParticipant.uid,
+      username: otherParticipant.username,
+      email: otherParticipant.email,
+      displayName: otherParticipant.displayName
+    } : null
+  });
 
   // Get display name from available fields
   const getDisplayName = () => {
-    if (otherParticipant?.username) return otherParticipant.username;
-    if (otherParticipant?.displayName) return otherParticipant.displayName;
-    if (otherParticipant?.email) return otherParticipant.email.split('@')[0];
+    if (!otherParticipant) return 'Unknown User';
+    if (otherParticipant.username) return otherParticipant.username;
+    if (otherParticipant.displayName) return otherParticipant.displayName;
+    if (otherParticipant.email) return otherParticipant.email.split('@')[0];
     return 'Unknown User';
   };
 

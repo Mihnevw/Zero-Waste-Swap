@@ -1,61 +1,123 @@
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const { auth } = require('../config/firebase-admin');
+const { syncFirebaseUser } = require('../utils/firebaseSync');
 const mongoose = require('mongoose');
 const { sendMessageNotification } = require('../services/emailService');
-const admin = require('firebase-admin');
+const { syncMissingUsers } = require('../utils/firebaseSync');
 
 // Get all chats for a user
 exports.getUserChats = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.uid;
     console.log('Fetching chats for user:', { userId, userEmail: req.user.email });
     
+    // First get the chats
     const chats = await Chat.find({ 
       participants: userId 
-    })
-    .populate('participants', 'username email photoURL displayName')
-    .populate({
-      path: 'messages',
-      populate: {
-        path: 'sender',
-        select: 'username email photoURL displayName _id'
-      },
-      options: { sort: { createdAt: -1 } }
-    })
-    .sort({ updatedAt: -1 });
+    }).lean();
 
-    console.log('Found chats:', {
+    console.log('Raw chats found:', {
       count: chats.length,
       chats: chats.map(chat => ({
         id: chat._id,
-        participants: chat.participants.map(p => ({
-          id: p._id,
-          username: p.username,
-          email: p.email
+        participants: chat.participants,
+        participantDetails: chat.participants.map(p => ({
+          uid: p,
+          type: typeof p
         }))
       }))
     });
-    
-    const chatsWithUnread = chats.map(chat => {
-      // Safely calculate unread count
-      const unreadCount = chat.messages?.reduce((count, msg) => {
-        // Check if message exists and has a sender
-        if (msg && msg.sender && msg.sender._id) {
-          return msg.sender._id.toString() !== userId.toString() && !msg.read ? count + 1 : count;
-        }
-        return count;
-      }, 0) || 0;
+
+    // Get all unique participant UIDs
+    const participantUids = [...new Set(chats.flatMap(chat => chat.participants))];
+    console.log('Unique participant UIDs:', participantUids);
+
+    // Get all users from MongoDB
+    let users = await User.find({ uid: { $in: participantUids } })
+      .select('uid username email photoURL displayName')
+      .lean();
+
+    console.log('Found users in MongoDB:', {
+      count: users.length,
+      users: users.map(u => ({
+        uid: u.uid,
+        username: u.username,
+        displayName: u.displayName,
+        email: u.email
+      }))
+    });
+
+    // Check for missing users
+    const missingUids = participantUids.filter(uid => 
+      !users.some(user => user.uid === uid)
+    );
+
+    if (missingUids.length > 0) {
+      console.log('Syncing missing users:', missingUids);
+      const syncedUsers = await Promise.all(
+        missingUids.map(async uid => {
+          try {
+            const firebaseUser = await auth.getUser(uid);
+            return await syncFirebaseUser(firebaseUser);
+          } catch (error) {
+            console.error(`Failed to sync user ${uid}:`, error);
+            return null;
+          }
+        })
+      );
+      
+      // Add successfully synced users to our users array
+      users = [...users, ...syncedUsers.filter(Boolean)];
+    }
+
+    // Create a map for quick user lookup
+    const userMap = new Map(users.map(user => [user.uid, user]));
+
+    // Process chats with user information
+    const processedChats = chats.map(chat => {
+      const participants = chat.participants.map(uid => {
+        const user = userMap.get(uid);
+        return user ? {
+          uid: user.uid,
+          username: user.username || user.displayName || 'Unknown User',
+          displayName: user.displayName || user.username || 'Unknown User',
+          email: user.email || '',
+          photoURL: user.photoURL || null
+        } : {
+          uid: uid,
+          username: 'Unknown User',
+          displayName: 'Unknown User',
+          email: '',
+          photoURL: null
+        };
+      });
 
       return {
-        ...chat.toObject(),
-        unreadCount
+        _id: chat._id,
+        participants,
+        messages: chat.messages || [],
+        createdAt: chat.createdAt,
+        updatedAt: chat.updatedAt
       };
     });
 
-    res.json(chatsWithUnread);
+    console.log('Processed chats:', {
+      count: processedChats.length,
+      chats: processedChats.map(chat => ({
+        id: chat._id,
+        participants: chat.participants.map(p => ({
+          uid: p.uid,
+          username: p.username,
+          displayName: p.displayName
+        }))
+      }))
+    });
+
+    res.json(processedChats);
   } catch (error) {
-    console.error('Error fetching chats:', error);
+    console.error('Error getting user chats:', error);
     res.status(500).json({ message: 'Failed to fetch chats', error: error.message });
   }
 };
@@ -92,7 +154,7 @@ exports.getChatMessages = async (req, res) => {
     const transformedMessages = await Promise.all(messages.map(async (msg) => {
       try {
         // Get sender info from Firebase
-        const sender = await admin.auth().getUser(msg.sender);
+        const sender = await auth.getUser(msg.sender);
         return {
           _id: msg._id.toString(),
           chat: msg.chat.toString(),
@@ -244,7 +306,7 @@ exports.sendMessage = async (req, res) => {
     if (recipientId) {
       try {
         // Get recipient's info from Firebase
-        const recipient = await admin.auth().getUser(recipientId);
+        const recipient = await auth.getUser(recipientId);
         console.log('Found recipient:', { 
           uid: recipient.uid, 
           email: recipient.email,

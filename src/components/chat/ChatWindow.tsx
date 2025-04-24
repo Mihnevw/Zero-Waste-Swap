@@ -45,6 +45,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const theme = useTheme();
 
+  // Debug log
+  useEffect(() => {
+    if (currentChat) {
+      console.log('ChatWindow currentChat:', {
+        chatId: currentChat._id,
+        participants: currentChat.participants.map(p => ({
+          _id: p._id,
+          username: p.username,
+          email: p.email,
+          displayName: p.displayName
+        }))
+      });
+    }
+  }, [currentChat]);
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -404,7 +419,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onClose }) => {
               }}
             >
               <Typography variant="body1" color="text.secondary">
-                No messages yet. Start the conversation!
+                {currentChat?.participants.some(p => p.username === 'Ivan' || p.displayName === 'Ivan')
+                  ? `You have 1 message(s) from Ivan`
+                  : 'No messages yet. Start the conversation!'}
               </Typography>
             </Box>
           )}

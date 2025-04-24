@@ -15,7 +15,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["node"],
+    "types": ["vite/client", "node"],
     "allowJs": true,
     "esModuleInterop": true,
     "typeRoots": ["./node_modules/@types", "./src", "./"]

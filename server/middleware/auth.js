@@ -1,4 +1,5 @@
 const { auth } = require('../config/firebase-admin');
+const { syncFirebaseUser } = require('../utils/firebaseSync');
 require('dotenv').config({ path: './.env' });
 
 const authMiddleware = async (req, res, next) => {
@@ -27,16 +28,28 @@ const authMiddleware = async (req, res, next) => {
       email: decodedToken.email
     });
 
-    // Set user information in the request
+    // Get the full Firebase user data
+    const firebaseUser = await auth.getUser(decodedToken.uid);
+    
+    // Sync user data with MongoDB
+    const syncedUser = await syncFirebaseUser(firebaseUser);
+    
+    if (!syncedUser) {
+      console.error('Failed to sync user data with MongoDB');
+      return res.status(500).json({ message: 'Failed to sync user data' });
+    }
+
+    // Set complete user information in the request
     req.user = {
-      _id: decodedToken.uid,
-      uid: decodedToken.uid,
-      email: decodedToken.email || '',
-      name: decodedToken.name || decodedToken.email || '',
-      displayName: decodedToken.name || decodedToken.email || ''
+      _id: syncedUser.uid,
+      uid: syncedUser.uid,
+      email: syncedUser.email,
+      username: syncedUser.username,
+      displayName: syncedUser.displayName,
+      photoURL: syncedUser.photoURL
     };
 
-    console.log('User set in request:', req.user);
+    console.log('User synced and set in request:', req.user);
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);

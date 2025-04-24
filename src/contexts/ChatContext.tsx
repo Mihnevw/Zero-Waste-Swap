@@ -38,79 +38,99 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!token || !user) return;
 
-    try {
-      const socket = io(apiUrl, {
-        auth: {
-          token: token
-        },
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        timeout: 30000,
-        forceNew: true,
-        autoConnect: true
-      });
-
-      socket.on('connect', () => {
-        console.log('Socket connected successfully');
-        setError(null);
-      });
-
-      socket.on('connect_error', (error) => {
-        console.error('Socket connection error:', error);
-        setError('Failed to connect to chat server. Retrying...');
+    const initializeSocket = async () => {
+      try {
+        // Get a fresh token before connecting
+        const freshToken = await user.getIdToken(true);
         
-        // Try to reconnect after a delay
-        setTimeout(() => {
-          if (socket.disconnected) {
-            console.log('Attempting to reconnect...');
+        const socket = io(apiUrl, {
+          auth: {
+            token: freshToken
+          },
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          timeout: 30000,
+          forceNew: true,
+          autoConnect: true
+        });
+
+        socket.on('connect', () => {
+          console.log('Socket connected successfully');
+          setError(null);
+        });
+
+        socket.on('connect_error', async (error) => {
+          console.error('Socket connection error:', error);
+          
+          // If token expired, try to refresh and reconnect
+          if (error.message.includes('id-token-expired')) {
+            try {
+              const newToken = await user.getIdToken(true);
+              socket.auth = { token: newToken };
+              socket.connect();
+            } catch (refreshError) {
+              console.error('Error refreshing token:', refreshError);
+              setError('Failed to refresh authentication. Please log in again.');
+            }
+          } else {
+            setError('Failed to connect to chat server. Retrying...');
+            
+            // Try to reconnect after a delay
+            setTimeout(() => {
+              if (socket.disconnected) {
+                console.log('Attempting to reconnect...');
+                socket.connect();
+              }
+            }, 5000);
+          }
+        });
+
+        socket.on('disconnect', (reason) => {
+          console.log('Socket disconnected:', reason);
+          if (reason === 'io server disconnect' || reason === 'io client disconnect') {
+            // the disconnection was initiated by the server or client, reconnect manually
             socket.connect();
           }
-        }, 5000);
-      });
+        });
 
-      socket.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', reason);
-        if (reason === 'io server disconnect' || reason === 'io client disconnect') {
-          // the disconnection was initiated by the server or client, reconnect manually
-          socket.connect();
-        }
-      });
+        socket.on('error', (error) => {
+          console.error('Socket error:', error);
+          setError('Chat server error. Attempting to reconnect...');
+        });
 
-      socket.on('error', (error) => {
-        console.error('Socket error:', error);
-        setError('Chat server error. Attempting to reconnect...');
-      });
+        socket.on('reconnect', (attemptNumber) => {
+          console.log('Socket reconnected after', attemptNumber, 'attempts');
+          setError(null);
+        });
 
-      socket.on('reconnect', (attemptNumber) => {
-        console.log('Socket reconnected after', attemptNumber, 'attempts');
-        setError(null);
-      });
+        socket.on('reconnect_error', (error) => {
+          console.error('Socket reconnection error:', error);
+          setError('Failed to reconnect to chat server');
+        });
 
-      socket.on('reconnect_error', (error) => {
-        console.error('Socket reconnection error:', error);
-        setError('Failed to reconnect to chat server');
-      });
+        socket.on('reconnect_failed', () => {
+          console.error('Socket reconnection failed');
+          setError('Unable to reconnect to chat server. Please refresh the page.');
+        });
 
-      socket.on('reconnect_failed', () => {
-        console.error('Socket reconnection failed');
-        setError('Unable to reconnect to chat server. Please refresh the page.');
-      });
+        socketRef.current = socket;
 
-      socketRef.current = socket;
+        return () => {
+          if (socket.connected) {
+            socket.disconnect();
+          }
+          socketRef.current = null;
+        };
+      } catch (error) {
+        console.error('Error initializing socket:', error);
+        setError('Failed to initialize chat connection');
+      }
+    };
 
-      return () => {
-        if (socket.connected) {
-          socket.disconnect();
-        }
-        socketRef.current = null;
-      };
-    } catch (error) {
-      console.error('Error initializing socket:', error);
-      setError('Failed to initialize chat connection');
-    }
+    initializeSocket();
   }, [token, user, apiUrl]);
 
   // Calculate total unread count
@@ -166,9 +186,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setLoading(true);
     try {
+      // Get a fresh token
+      const freshToken = await user.getIdToken(true);
+      console.log('Fetching chats with token:', freshToken.substring(0, 10) + '...');
+      
       const response = await fetch(`${apiUrl}/api/chats`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${freshToken}`,
           'Content-Type': 'application/json'
         },
         credentials: 'include'
@@ -190,7 +214,37 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid response format for chats');
       }
 
-      setChats(data);
+      // Debug log
+      console.log('Chats fetched:', {
+        count: data.length,
+        currentUser: {
+          uid: user.uid,
+          email: user.email
+        },
+        firstChat: data[0] ? {
+          _id: data[0]._id,
+          participants: data[0].participants.map((p: { uid: string; username?: string; email?: string; displayName?: string }) => ({
+            uid: p.uid,
+            username: p.username,
+            email: p.email,
+            displayName: p.displayName
+          }))
+        } : null
+      });
+
+      // Ensure participants have the correct structure
+      const processedData = data.map(chat => ({
+        ...chat,
+        participants: chat.participants.map((p: any) => ({
+          uid: p.uid,
+          username: p.username,
+          email: p.email,
+          displayName: p.displayName,
+          photoURL: p.photoURL
+        }))
+      }));
+
+      setChats(processedData);
       setError(null);
     } catch (err) {
       console.error('Error fetching chats:', err);

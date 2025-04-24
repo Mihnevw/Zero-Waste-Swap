@@ -47,7 +47,6 @@ messageSchema.set('toJSON', {
     // Add sender information handling
     if (ret.sender && typeof ret.sender === 'string') {
       ret.sender = {
-        _id: ret.sender,
         uid: ret.sender
       };
     }

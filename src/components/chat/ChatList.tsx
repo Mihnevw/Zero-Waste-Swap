@@ -17,6 +17,7 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ChatListItem from './ChatListItem';
 import { Chat } from '../../types/chat';
+import { User } from '../../types/user';
 
 interface ChatListProps {
   onChatSelect?: (chat: Chat) => void;
@@ -26,14 +27,28 @@ interface ChatListProps {
 // Helper function to convert Chat to ChatListItem format
 const convertChatToListItem = (chat: Chat) => {
   // Ensure we have valid participants
-  const participants = chat.participants?.map(p => ({
-    _id: p._id,
-    username: p.username,
-    email: p.email,
-    displayName: p.displayName,
-    photoURL: p.photoURL,
-    online: p.online
-  })) || [];
+  const participants = chat.participants?.map(p => {
+    // Log the raw participant data
+    console.log('Raw participant data:', p);
+
+    // Ensure all required fields are present with proper type checking
+    const participant = {
+      uid: typeof p === 'object' && p ? p.uid || 'unknown' : 'unknown',
+      username: typeof p === 'object' && p ? p.username || 'user' : 'user',
+      displayName: typeof p === 'object' && p ? p.displayName || 'Unknown User' : 'Unknown User',
+      email: typeof p === 'object' && p ? p.email || '' : '',
+      photoURL: typeof p === 'object' && p ? p.photoURL || undefined : undefined,
+      online: typeof p === 'object' && p ? p.online || false : false
+    };
+
+    // Log the processed participant data
+    console.log('Processed participant data:', participant);
+
+    return participant;
+  }) || [];
+
+  // Log the final participants array
+  console.log('Final participants array:', participants);
 
   // Handle lastMessage safely
   const lastMessage = chat.lastMessage ? {
@@ -45,12 +60,17 @@ const convertChatToListItem = (chat: Chat) => {
         : new Date().toISOString()
   } : undefined;
 
-  return {
+  const chatListItem = {
     _id: chat._id,
     participants,
     lastMessage,
     updatedAt: chat.updatedAt || new Date().toISOString()
   };
+
+  // Log the final chat list item
+  console.log('Final chat list item:', chatListItem);
+
+  return chatListItem;
 };
 
 const ChatList: React.FC<ChatListProps> = ({ onChatSelect, selectedChatId }) => {
@@ -66,7 +86,7 @@ const ChatList: React.FC<ChatListProps> = ({ onChatSelect, selectedChatId }) => 
   }, [user, fetchChats]);
 
   const filteredChats = chats.filter((chat: Chat) => {
-    const otherParticipant = chat.participants.find((p: { _id: string; username?: string; displayName?: string; email?: string }) => p._id !== user?.uid);
+    const otherParticipant = chat.participants.find((p: User) => p.uid !== user?.uid);
     const searchString = [
       otherParticipant?.username,
       otherParticipant?.displayName,
