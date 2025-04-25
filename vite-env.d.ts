@@ -14,6 +14,7 @@ interface ImportMetaEnv {
   readonly VITE_CLOUDINARY_API_KEY: string;
   readonly VITE_CLOUDINARY_API_SECRET: string;
   readonly VITE_CLIENT_URL: string;
+  readonly VITE_APP_TITLE: string;
 }
 
 interface ImportMeta {
