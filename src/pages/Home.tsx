@@ -245,7 +245,7 @@ const Home: React.FC = () => {
       }
 
       if (participantId === user.uid) {
-        throw new Error('Cannot start chat with yourself');
+        throw new Error('Не можете да започнете чат със себе си!');
       }
 
       const response = await fetch(`${apiUrl}/api/chats`, {
