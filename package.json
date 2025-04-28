@@ -40,6 +40,7 @@
     "firebase": "^10.14.1",
     "firebase-admin": "^13.2.0",
     "fuse.js": "^7.0.0",
+    "helmet": "^8.1.0",
     "leaflet": "^1.9.4",
     "mongoose": "^8.13.1",
     "nodemailer": "^6.10.0",
