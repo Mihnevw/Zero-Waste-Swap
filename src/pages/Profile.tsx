@@ -5,7 +5,6 @@ import {
   Box,
   Typography,
   Grid,
-  Avatar,
   Button,
   Card,
   CardContent,
@@ -16,6 +15,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useListings } from '../hooks/useListings';
 import ListingCard from '../components/ListingCard';
 import AnimatedPage from '../components/AnimatedPage';
+import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 
 const Profile: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -59,11 +59,7 @@ const Profile: React.FC = () => {
                 <Card>
                   <CardContent>
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-                      <Avatar
-                        sx={{ width: 100, height: 100, mb: 2 }}
-                        alt={user?.displayName || 'User'}
-                        src={user?.photoURL || ''}
-                      />
+                      <ProfilePhotoUpload />
                       <Typography variant="h6" gutterBottom>
                         {user?.displayName || 'Потребител'}
                       </Typography>

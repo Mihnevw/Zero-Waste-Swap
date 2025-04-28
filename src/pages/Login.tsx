@@ -79,6 +79,19 @@ const Login: React.FC = () => {
                       required
                       error={!!error}
                       helperText={!!error && !validateEmail(email) ? 'Моля, въведете валиден имейл адрес' : ''}
+                      sx={{
+                        '& .MuiInputBase-input': {
+                          backgroundColor: 'transparent',
+                          color: 'black',
+                        },
+                        '& .MuiInputBase-root': {
+                          backgroundColor: 'transparent',
+                        },
+                        '& input:-webkit-autofill': {
+                          WebkitBoxShadow: '0 0 0 100px white inset',
+                          WebkitTextFillColor: 'black',
+                        },
+                      }}
                     />
                   </Grid>
 
@@ -92,6 +105,19 @@ const Login: React.FC = () => {
                       required
                       error={!!error}
                       helperText={error}
+                      sx={{
+                        '& .MuiInputBase-input': {
+                          backgroundColor: 'transparent',
+                          color: 'black',
+                        },
+                        '& .MuiInputBase-root': {
+                          backgroundColor: 'transparent',
+                        },
+                        '& input:-webkit-autofill': {
+                          WebkitBoxShadow: '0 0 0 100px white inset',
+                          WebkitTextFillColor: 'black',
+                        },
+                      }}
                     />
                   </Grid>
 
