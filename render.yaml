@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: zero-waste-swap
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
+    envVars:
+      - key: NODE_VERSION
+        value: 18.x
+    healthCheckPath: /
+    autoDeploy: true 
